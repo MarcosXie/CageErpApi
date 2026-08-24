@@ -1,0 +1,28 @@
+networks:
+  flygates_net:
+    external: true
+
+services:
+  cage-erp-api:
+    image: ghcr.io/marcosxie/cage-erp-api:latest
+    container_name: cage-erp-api
+    restart: unless-stopped
+    env_file:
+      - /opt/cage-erp-api/.env
+    ports:
+      - "127.0.0.1:8093:8093"
+    volumes:
+      - /opt/cage-erp-api/logs:/app/logs
+    networks:
+      - flygates_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8093/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

@@ -1,0 +1,54 @@
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+
+# IDE / VS / Rider
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+# Tests / coverage
+**/TestResults/
+**/.coverage*
+
+# Logs
+**/*.log
+**/logs/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI / docs / deploy locais
+.github/
+deploy/
+_deploy-local/
+*.md
+README*
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Certificates / secrets
+**/certs/
+**/*.pem
+**/*.pem.crt
+**/*.pem.key
+**/*.pfx
+**/cert.pem
+**/private.key
+**/secrets.json
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# Misc
+*.swp
+.DS_Store
+Thumbs.db
