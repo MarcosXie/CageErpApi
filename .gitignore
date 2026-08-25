@@ -13,6 +13,9 @@ secrets.json
 .env
 .env.*
 !deploy/.env.example
+_deploy-local/*.env.production
+_deploy-local/*.tar.gz
+_deploy-local/*.tmp
 
 logs/
 *.log
