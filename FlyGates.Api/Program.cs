@@ -18,7 +18,9 @@ services.AddCors(options =>
             .WithOrigins(
                 "http://localhost:5173",
                 "http://localhost:3000",
-                "http://localhost:5174"
+                "http://localhost:5174",
+                "https://cageouts.com.br",
+                "https://www.cageouts.com.br"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
