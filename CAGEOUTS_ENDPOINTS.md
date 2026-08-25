@@ -177,15 +177,100 @@ Request body (application/json):
 Response 201:
 - Sem body
 
+## Vendas (CageOutTransaction)
+
+Rota base:
+- /api/CageOutTransaction
+
+Uma venda concluida no CageOuts e imutavel. A API permite criar e consultar, sem edicao ou exclusao.
+
+### 1) Registrar venda
+
+Metodo:
+- POST /api/CageOutTransaction
+
+Request body (application/json):
+
+```json
+{
+  "clientTransactionId": "ce6d33e8-8df6-405c-950d-08dac3aa51d9",
+  "checkoutId": "PDV-1",
+  "completedAt": "2026-08-25T15:30:00Z",
+  "items": [
+    {
+      "productCode": "7891234567890",
+      "productName": "Arroz Tipo 1",
+      "quantity": 2,
+      "unitPrice": 25.9
+    }
+  ]
+}
+```
+
+Notas:
+- `clientTransactionId` e gerado pelo CageOuts e e unico. Reenviar o mesmo ID devolve a venda ja registrada, sem duplicar a compra.
+- A API calcula `subtotal`, `itemCount` e `totalAmount` a partir dos itens recebidos.
+- Itens devem ter codigo, descricao, quantidade maior que zero e preco nao negativo.
+
+Response 201 (application/json):
+
+```json
+{
+  "id": "69bcbb68-e1ca-43b8-ac29-97020a9361b6",
+  "clientTransactionId": "ce6d33e8-8df6-405c-950d-08dac3aa51d9",
+  "checkoutId": "PDV-1",
+  "completedAt": "2026-08-25T15:30:00Z",
+  "totalAmount": 51.8,
+  "itemCount": 2,
+  "createdAt": "2026-08-25T15:30:02Z",
+  "items": [
+    {
+      "productCode": "7891234567890",
+      "productName": "Arroz Tipo 1",
+      "quantity": 2,
+      "unitPrice": 25.9,
+      "subtotal": 51.8
+    }
+  ]
+}
+```
+
+### 2) Listar vendas
+
+Metodo:
+- GET /api/CageOutTransaction
+
+Response 200:
+- Lista de vendas em ordem decrescente de horario de conclusao. Cada registro inclui total, quantidade e itens.
+
+### 3) Consultar venda por ID
+
+Metodo:
+- GET /api/CageOutTransaction/{id}
+
+Path params:
+- id (Guid)
+
+Response 200:
+- Uma venda com seus itens, total e horario.
+
+Response 404:
+- Quando a venda nao existir.
+
 ## Tabelas criadas por migration
 
 Migration:
 - 20260716113735_AddCageOutsModule
+- 20260825110231_AddCageOutTransactions
 
 Tabelas:
 - cage_out_employee
 - cage_out_reject
+- transactions
+- transaction_items
 
 Colunas principais:
 - cage_out_employee: Name, BadgeCode (unico), Password, FingerprintData, CreatedAt, UpdatedAt
 - cage_out_reject: ProductCode, ProductName, Schedule, CheckoutId, ExpectedWeight, RealWeight, ProductImage, ProductVideo, Reason, CreatedAt, UpdatedAt
+- transactions: ClientTransactionId (unico), CheckoutId, CompletedAt, TotalAmount, ItemCount, CreatedAt, UpdatedAt
+- transaction_items: TransactionId, ProductCode, ProductName, Quantity, UnitPrice, Subtotal

@@ -11,12 +11,16 @@ public class FlyGatesDbContext(DbContextOptions<FlyGatesDbContext> options) : Db
     public virtual DbSet<TotvsMockProdutoDao> TotvsMockProdutos { get; set; }
     public virtual DbSet<CageOutEmployeeDao> CageOutEmployees { get; set; }
     public virtual DbSet<CageOutRejectDao> CageOutRejects { get; set; }
+    public virtual DbSet<CageOutTransactionDao> CageOutTransactions { get; set; }
+    public virtual DbSet<CageOutTransactionItemDao> CageOutTransactionItems { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new TotvsMockProdutoConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutEmployeeConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutRejectConfiguration());
+        modelBuilder.ApplyConfiguration(new CageOutTransactionConfiguration());
+        modelBuilder.ApplyConfiguration(new CageOutTransactionItemConfiguration());
         
         base.OnModelCreating(modelBuilder);
     }
