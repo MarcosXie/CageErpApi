@@ -23,6 +23,9 @@ public class CageOutUnitConfiguration : IEntityTypeConfiguration<CageOutUnitDao>
         entity.Property(x => x.ClientId)
             .IsRequired();
 
+        entity.Property(x => x.BaseBadgeCode)
+            .HasMaxLength(50);
+
         entity.Property(x => x.IsActive)
             .IsRequired();
 
