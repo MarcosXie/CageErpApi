@@ -14,6 +14,7 @@ public class DtoToDomain : Profile
 	    CreateMap<CageOutClientDto, CageOutClient>();
 	    CreateMap<CageOutUnitDto, CageOutUnit>();
 	    CreateMap<CageOutEmployeeDto, CageOutEmployee>();
+	    CreateMap<CageOutEmployeeUpdateDto, CageOutEmployee>();
 	    CreateMap<CageOutRejectDto, CageOutReject>();
 	    CreateMap<CageOutTransactionDto, CageOutTransaction>();
 	    CreateMap<CageOutTransactionItemDto, CageOutTransactionItem>();

@@ -17,17 +17,17 @@ public class CageOutEmployeeService(ICageOutEmployeeRepository repository, IMapp
         return mapper.Map<CageOutEmployeeResponseDto>(created);
     }
 
-    public async Task UpdateAsync(Guid id, CageOutEmployeeDto cageOutEmployeeDto)
+    public async Task UpdateAsync(Guid id, CageOutEmployeeUpdateDto cageOutEmployeeUpdateDto)
     {
         var dbEmployee = await repository.GetByIdAsync(id);
         var currentPassword = dbEmployee.Password;
 
-        mapper.Map(cageOutEmployeeDto, dbEmployee);
+        mapper.Map(cageOutEmployeeUpdateDto, dbEmployee);
 
-        if (string.IsNullOrEmpty(cageOutEmployeeDto.Password))
+        if (string.IsNullOrEmpty(cageOutEmployeeUpdateDto.Password))
             dbEmployee.Password = currentPassword;
         else
-            dbEmployee.Password = HashHelper.Hash(cageOutEmployeeDto.Password);
+            dbEmployee.Password = HashHelper.Hash(cageOutEmployeeUpdateDto.Password);
 
         await repository.UpdateAsync(dbEmployee);
     }

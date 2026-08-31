@@ -36,7 +36,7 @@ public class CageOutEmployeeController(ICageOutEmployeeService service) : Contro
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] CageOutEmployeeDto request)
+    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] CageOutEmployeeUpdateDto request)
     {
         await service.UpdateAsync(id, request);
         return NoContent();
