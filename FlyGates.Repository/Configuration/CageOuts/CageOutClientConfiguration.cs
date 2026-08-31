@@ -20,12 +20,6 @@ public class CageOutClientConfiguration : IEntityTypeConfiguration<CageOutClient
             .HasMaxLength(120)
             .IsRequired();
 
-        entity.Property(x => x.Phone)
-            .HasMaxLength(20);
-
-        entity.Property(x => x.Address)
-            .HasMaxLength(500);
-
         entity.Property(x => x.IsActive)
             .IsRequired();
 

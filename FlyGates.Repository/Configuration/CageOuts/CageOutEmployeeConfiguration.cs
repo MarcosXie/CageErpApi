@@ -30,6 +30,9 @@ public class CageOutEmployeeConfiguration : IEntityTypeConfiguration<CageOutEmpl
             .HasColumnType("longtext")
             .IsRequired();
 
+        entity.Property(x => x.UnitId)
+            .IsRequired();
+
         // Stored as JSON text; longtext avoids Pomelo intercepting writes before the converter runs.
         entity.Property(x => x.AllowedProcedures)
             .HasColumnType("longtext")

@@ -26,12 +26,6 @@ public class CageOutUnitConfiguration : IEntityTypeConfiguration<CageOutUnitDao>
         entity.Property(x => x.Email)
             .HasMaxLength(120);
 
-        entity.Property(x => x.Phone)
-            .HasMaxLength(20);
-
-        entity.Property(x => x.Address)
-            .HasMaxLength(500);
-
         entity.Property(x => x.IsActive)
             .IsRequired();
 

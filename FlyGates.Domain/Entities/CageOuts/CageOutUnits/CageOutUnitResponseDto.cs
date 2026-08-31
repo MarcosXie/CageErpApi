@@ -7,8 +7,6 @@ public class CageOutUnitResponseDto
     public required string Code { get; set; }
     public required Guid ClientId { get; set; }
     public string? Email { get; set; }
-    public string? Phone { get; set; }
-    public string? Address { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
