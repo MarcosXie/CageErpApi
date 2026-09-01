@@ -51,6 +51,14 @@ public class CageOutEmployeeController(ICageOutEmployeeService service) : Contro
         return NoContent();
     }
 
+    [HttpPost("validate-badge")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ValidateBadge([FromBody] CageOutEmployeeBadgeValidationDto request)
+    {
+        var isValid = await service.IsValidBadgeAsync(request.BadgeCode);
+        return Ok(new { isValid });
+    }
+
     [HttpPost("authenticate")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

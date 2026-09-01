@@ -49,6 +49,15 @@ public class CageOutEmployeeService(ICageOutEmployeeRepository repository, IMapp
         return mapper.Map<List<CageOutEmployeeResponseDto>>(entities);
     }
 
+    public async Task<bool> IsValidBadgeAsync(string badgeCode)
+    {
+        var normalizedBadgeCode = badgeCode.Trim();
+        if (normalizedBadgeCode.Length == 0)
+            return false;
+
+        var matches = await repository.GetAsync(employee => employee.BadgeCode == normalizedBadgeCode);
+        return matches.Count != 0;
+    }
 
     public async Task<CageOutEmployeeAuthResultDto?> AuthenticateAsync(CageOutEmployeeAuthDto request)
     {

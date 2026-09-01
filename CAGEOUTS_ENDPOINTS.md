@@ -128,6 +128,48 @@ Request body:
 Response 204:
 - Sem body
 
+### 6) Validar cracha de funcionario
+Metodo:
+- POST /api/CageOutEmployee/validate-badge
+
+Request body:
+```json
+{
+  "badgeCode": "A12345"
+}
+```
+
+Response 200:
+```json
+{
+  "isValid": true
+}
+```
+
+Este endpoint apenas identifica se o cracha esta cadastrado. A entrada no modo atendente ainda exige senha no endpoint de autenticacao.
+
+### 7) Autenticar funcionario
+Metodo:
+- POST /api/CageOutEmployee/authenticate
+
+Request body:
+```json
+{
+  "badgeCode": "A12345",
+  "password": "5678"
+}
+```
+
+Response 200:
+```json
+{
+  "id": "fb6ca428-e7b0-4ccd-a64a-7c9d6184f307",
+  "allowedProcedures": ["Refund", "Cleaning"]
+}
+```
+
+Credenciais invalidas retornam 404.
+
 ## Rejeitos (CageOutReject)
 
 Rota base:
