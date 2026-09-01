@@ -32,6 +32,10 @@ public class TotvsMockProdutoConfiguration : IEntityTypeConfiguration<TotvsMockP
             .HasColumnType("decimal(18,3)")
             .IsRequired();
 
+        entity.Property(x => x.IsActive)
+            .HasDefaultValue(true)
+            .IsRequired();
+
         entity.HasIndex(x => x.CodigoBarras)
             .IsUnique()
             .HasDatabaseName("ix_totvs_mock_produto_codigo_barras");

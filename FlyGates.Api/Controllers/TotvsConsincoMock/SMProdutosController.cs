@@ -80,7 +80,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
                     x.CreatedAt,
                     x.UpdatedAt,
                     perfil.PesoLiquido,
-                    perfil.PesoBruto
+                    perfil.PesoBruto,
+                    x.IsActive
                 );
             })
             .ToList();
@@ -108,7 +109,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
             entity.CreatedAt,
             entity.UpdatedAt,
             perfil.PesoLiquido,
-            perfil.PesoBruto
+            perfil.PesoBruto,
+            entity.IsActive
         );
 
         return Ok(produto);
@@ -138,7 +140,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
             entity.CreatedAt,
             entity.UpdatedAt,
             perfil.PesoLiquido,
-            perfil.PesoBruto
+            perfil.PesoBruto,
+            entity.IsActive
         );
 
         return Ok(produto);
@@ -164,6 +167,7 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
             Preco = request.Preco,
             PesoLiquido = request.PesoLiquido,
             PesoBruto = request.PesoBruto,
+            IsActive = request.IsActive,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -181,7 +185,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
                 entity.CreatedAt,
                 entity.UpdatedAt,
                 BuildLegacyPerfil(entity).PesoLiquido,
-                BuildLegacyPerfil(entity).PesoBruto
+                BuildLegacyPerfil(entity).PesoBruto,
+                entity.IsActive
             ));
     }
 
@@ -206,6 +211,7 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
         entity.Preco = request.Preco;
         entity.PesoLiquido = request.PesoLiquido;
         entity.PesoBruto = request.PesoBruto;
+        entity.IsActive = request.IsActive;
         entity.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -218,7 +224,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
             entity.CreatedAt,
             entity.UpdatedAt,
             BuildLegacyPerfil(entity).PesoLiquido,
-            BuildLegacyPerfil(entity).PesoBruto
+            BuildLegacyPerfil(entity).PesoBruto,
+            entity.IsActive
         ));
     }
 
@@ -491,8 +498,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
         );
     }
 
-    public record CreateProdutoRequest(string Nome, string CodigoBarras, decimal Preco, decimal PesoLiquido, decimal PesoBruto);
-    public record UpdateProdutoRequest(string Nome, string CodigoBarras, decimal Preco, decimal PesoLiquido, decimal PesoBruto);
+    public record CreateProdutoRequest(string Nome, string CodigoBarras, decimal Preco, decimal PesoLiquido, decimal PesoBruto, bool IsActive = true);
+    public record UpdateProdutoRequest(string Nome, string CodigoBarras, decimal Preco, decimal PesoLiquido, decimal PesoBruto, bool IsActive = true);
     public record ProdutoResponse(
         Guid Id,
         string Nome,
@@ -501,7 +508,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
         DateTime CreatedAt,
         DateTime UpdatedAt,
         decimal PesoLiquido,
-        decimal PesoBruto
+        decimal PesoBruto,
+        bool IsActive
     );
 
     public record PrecoProdutoResponse(
