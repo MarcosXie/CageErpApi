@@ -14,4 +14,6 @@ public class CageOutReject : BaseModel
     public required string ProductImage { get; set; }
     public required string ProductVideo { get; set; }
     public CageOutRejectReason Reason { get; set; }
+    public bool IsResolved { get; set; }
+    public DateTime? ResolvedAt { get; set; }
 }

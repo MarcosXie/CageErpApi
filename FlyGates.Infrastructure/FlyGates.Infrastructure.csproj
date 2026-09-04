@@ -8,8 +8,12 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="AWSSDK.S3" Version="4.0.102.4" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.11" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.11" />
+      <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.11" />
+      <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.11" />
     </ItemGroup>
 
     <ItemGroup>
@@ -17,6 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Configuration\" />
       <Folder Include="Dtos\" />
       <Folder Include="Services\" />
       <Folder Include="Utils\" />

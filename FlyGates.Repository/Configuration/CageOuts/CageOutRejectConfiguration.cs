@@ -46,5 +46,10 @@ public class CageOutRejectConfiguration : IEntityTypeConfiguration<CageOutReject
         entity.Property(x => x.Reason)
             .HasConversion<int>()
             .IsRequired();
+
+        entity.Property(x => x.IsResolved)
+            .IsRequired();
+
+        entity.Property(x => x.ResolvedAt);
     }
 }

@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>FlyGates</RootNamespace>
+          <UserSecretsId>61c64390-5884-46fa-bae2-41ce8be25048</UserSecretsId>
   </PropertyGroup>
 
     <ItemGroup>

@@ -14,4 +14,6 @@ public class CageOutRejectDao : BaseDao
     public string ProductImage { get; set; } = string.Empty;
     public string ProductVideo { get; set; } = string.Empty;
     public CageOutRejectReason Reason { get; set; }
+    public bool IsResolved { get; set; }
+    public DateTime? ResolvedAt { get; set; }
 }
