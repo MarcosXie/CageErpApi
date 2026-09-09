@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using FlyGates.Application.Entities.CageOuts.CageOutClients;
 using FlyGates.Application.Entities.CageOuts.CageOutEmployees;
+using FlyGates.Application.Entities.CageOuts.CageOutIds;
 using FlyGates.Application.Entities.CageOuts.CageOutRejects;
 using FlyGates.Application.Entities.CageOuts.CageOutTransactions;
 using FlyGates.Application.Entities.CageOuts.CageOutUnits;
@@ -13,6 +14,7 @@ public class DtoToDomain : Profile
     {
 	    CreateMap<CageOutClientDto, CageOutClient>();
 	    CreateMap<CageOutUnitDto, CageOutUnit>();
+	    CreateMap<CageOutIdDto, CageOutId>();
 	    CreateMap<CageOutEmployeeDto, CageOutEmployee>();
 	    CreateMap<CageOutEmployeeUpdateDto, CageOutEmployee>();
 	    CreateMap<CageOutRejectDto, CageOutReject>();

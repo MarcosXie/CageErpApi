@@ -170,6 +170,43 @@ Response 200:
 
 Credenciais invalidas retornam 404.
 
+## Cage IDs (CageOutId)
+
+Um Cage ID identifica de forma unica um terminal CageOuts e pertence a uma unidade.
+O campo `identifier` e obrigatorio, tem no maximo 80 caracteres, nao aceita espacos
+e possui indice unico no banco.
+
+Rota base:
+- /api/CageOutId
+
+### Listar Cage IDs
+- GET /api/CageOutId
+
+### Buscar Cage ID
+- GET /api/CageOutId/{id}
+
+### Criar Cage ID
+- POST /api/CageOutId
+
+```json
+{
+  "unitId": "4f2e4bc2-5036-47d0-8f52-f247fd8e58f0",
+  "identifier": "CAGE-001",
+  "isActive": true
+}
+```
+
+### Atualizar Cage ID
+- PUT /api/CageOutId/{id}
+- Corpo igual ao da criacao.
+
+### Excluir Cage ID
+- DELETE /api/CageOutId/{id}
+
+O CageOuts WPF consulta unidades e Cage IDs ativos no primeiro inicio. A selecao
+e persistida localmente na secao `CageIdentity` de `appsettings.Production.json`
+e o `identifier` passa a ser enviado como `checkoutId` em vendas e rejeitos.
+
 ## Rejeitos (CageOutReject)
 
 Rota base:

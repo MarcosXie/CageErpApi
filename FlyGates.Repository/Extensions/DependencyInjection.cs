@@ -1,5 +1,6 @@
 using FlyGates.Application.Entities.CageOuts.CageOutClients;
 using FlyGates.Application.Entities.CageOuts.CageOutEmployees;
+using FlyGates.Application.Entities.CageOuts.CageOutIds;
 using FlyGates.Application.Entities.CageOuts.CageOutRejects;
 using FlyGates.Application.Entities.CageOuts.CageOutTransactions;
 using FlyGates.Application.Entities.CageOuts.CageOutUnits;
@@ -38,6 +39,7 @@ public static class DependencyInjection
         // Repositories
         services.AddScoped<ICageOutClientRepository, CageOutClientRepository>();
         services.AddScoped<ICageOutUnitRepository, CageOutUnitRepository>();
+        services.AddScoped<ICageOutIdRepository, CageOutIdRepository>();
         services.AddScoped<ICageOutEmployeeRepository, CageOutEmployeeRepository>();
         services.AddScoped<ICageOutRejectRepository, CageOutRejectRepository>();
         services.AddScoped<ICageOutTransactionRepository, CageOutTransactionRepository>();
