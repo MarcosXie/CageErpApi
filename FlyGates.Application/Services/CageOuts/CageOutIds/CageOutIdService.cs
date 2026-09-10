@@ -12,6 +12,7 @@ public interface ICageOutIdService
     Task DeleteAsync(Guid id);
     Task<CageOutIdResponseDto> GetByIdAsync(Guid id);
     Task<List<CageOutIdResponseDto>> GetAllAsync();
+    Task HeartbeatAsync(string identifier);
 }
 
 public class CageOutIdService(
@@ -42,6 +43,14 @@ public class CageOutIdService(
 
     public async Task<List<CageOutIdResponseDto>> GetAllAsync() =>
         mapper.Map<List<CageOutIdResponseDto>>(await repository.GetAsync());
+
+    public async Task HeartbeatAsync(string identifier)
+    {
+        var entity = await repository.FirstOrDefaultAsync(x => x.Identifier == identifier)
+            ?? throw new NotFoundException("Cage ID");
+        entity.LastSeenAt = DateTime.UtcNow;
+        await repository.UpdateAsync(entity);
+    }
 
     private async Task ValidateAsync(CageOutIdDto dto, Guid? currentId = null)
     {

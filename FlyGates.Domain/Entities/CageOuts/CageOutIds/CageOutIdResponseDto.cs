@@ -6,6 +6,7 @@ public class CageOutIdResponseDto
     public required Guid UnitId { get; set; }
     public required string Identifier { get; set; }
     public bool IsActive { get; set; }
+    public DateTime? LastSeenAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

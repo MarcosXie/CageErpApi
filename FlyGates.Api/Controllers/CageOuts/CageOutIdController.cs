@@ -34,4 +34,12 @@ public class CageOutIdController(ICageOutIdService service) : ControllerBase
         await service.DeleteAsync(id);
         return NoContent();
     }
+
+    /// <summary>Chamado periodicamente pelo terminal CageOuts para sinalizar que está online.</summary>
+    [HttpPost("{identifier}/heartbeat")]
+    public async Task<IActionResult> Heartbeat(string identifier)
+    {
+        await service.HeartbeatAsync(identifier);
+        return NoContent();
+    }
 }
