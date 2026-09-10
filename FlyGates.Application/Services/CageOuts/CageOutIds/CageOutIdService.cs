@@ -48,7 +48,9 @@ public class CageOutIdService(
     {
         var entity = await repository.FirstOrDefaultAsync(x => x.Identifier == identifier)
             ?? throw new NotFoundException("Cage ID");
-        entity.LastSeenAt = DateTime.UtcNow;
+        // Mesma convenção de CreatedAt/UpdatedAt (hora local do servidor), não UTC —
+        // evita desalinhamento de 3h ao comparar com "agora" no front (América/São Paulo).
+        entity.LastSeenAt = DateTime.Now;
         await repository.UpdateAsync(entity);
     }
 
