@@ -32,6 +32,9 @@ public class TotvsMockProdutoConfiguration : IEntityTypeConfiguration<TotvsMockP
             .HasColumnType("decimal(18,3)")
             .IsRequired();
 
+        entity.Property(x => x.ToleranciaPesoKg)
+            .HasColumnType("decimal(18,3)");
+
         entity.Property(x => x.IsActive)
             .HasDefaultValue(true)
             .IsRequired();

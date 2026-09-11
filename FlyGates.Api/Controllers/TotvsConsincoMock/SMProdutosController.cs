@@ -81,7 +81,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
                     x.UpdatedAt,
                     perfil.PesoLiquido,
                     perfil.PesoBruto,
-                    x.IsActive
+                    x.IsActive,
+                    x.ToleranciaPesoKg
                 );
             })
             .ToList();
@@ -110,7 +111,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
             entity.UpdatedAt,
             perfil.PesoLiquido,
             perfil.PesoBruto,
-            entity.IsActive
+            entity.IsActive,
+            entity.ToleranciaPesoKg
         );
 
         return Ok(produto);
@@ -141,7 +143,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
             entity.UpdatedAt,
             perfil.PesoLiquido,
             perfil.PesoBruto,
-            entity.IsActive
+            entity.IsActive,
+            entity.ToleranciaPesoKg
         );
 
         return Ok(produto);
@@ -150,7 +153,7 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateProduto([FromBody] CreateProdutoRequest request)
     {
-        var validationError = ValidateRequest(request.Nome, request.CodigoBarras, request.Preco, request.PesoLiquido, request.PesoBruto);
+        var validationError = ValidateRequest(request.Nome, request.CodigoBarras, request.Preco, request.PesoLiquido, request.PesoBruto, request.ToleranciaPesoKg);
         if (validationError is not null)
             return BadRequest(new { Mensagem = validationError });
 
@@ -167,6 +170,7 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
             Preco = request.Preco,
             PesoLiquido = request.PesoLiquido,
             PesoBruto = request.PesoBruto,
+            ToleranciaPesoKg = request.ToleranciaPesoKg,
             IsActive = request.IsActive,
             CreatedAt = now,
             UpdatedAt = now
@@ -186,14 +190,15 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
                 entity.UpdatedAt,
                 BuildLegacyPerfil(entity).PesoLiquido,
                 BuildLegacyPerfil(entity).PesoBruto,
-                entity.IsActive
+                entity.IsActive,
+                entity.ToleranciaPesoKg
             ));
     }
 
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateProduto(Guid id, [FromBody] UpdateProdutoRequest request)
     {
-        var validationError = ValidateRequest(request.Nome, request.CodigoBarras, request.Preco, request.PesoLiquido, request.PesoBruto);
+        var validationError = ValidateRequest(request.Nome, request.CodigoBarras, request.Preco, request.PesoLiquido, request.PesoBruto, request.ToleranciaPesoKg);
         if (validationError is not null)
             return BadRequest(new { Mensagem = validationError });
 
@@ -211,6 +216,7 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
         entity.Preco = request.Preco;
         entity.PesoLiquido = request.PesoLiquido;
         entity.PesoBruto = request.PesoBruto;
+        entity.ToleranciaPesoKg = request.ToleranciaPesoKg;
         entity.IsActive = request.IsActive;
         entity.UpdatedAt = DateTime.UtcNow;
 
@@ -225,7 +231,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
             entity.UpdatedAt,
             BuildLegacyPerfil(entity).PesoLiquido,
             BuildLegacyPerfil(entity).PesoBruto,
-            entity.IsActive
+            entity.IsActive,
+            entity.ToleranciaPesoKg
         ));
     }
 
@@ -359,7 +366,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
                     idProduto,
                     idProduto,
                     idProduto,
-                    produto.UpdatedAt
+                    produto.UpdatedAt,
+                    produto.ToleranciaPesoKg
                 );
             })
             .ToList();
@@ -419,7 +427,7 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
         return Ok(data);
     }
 
-    private static string? ValidateRequest(string? nome, string? codigoBarras, decimal preco, decimal pesoLiquido, decimal pesoBruto)
+    private static string? ValidateRequest(string? nome, string? codigoBarras, decimal preco, decimal pesoLiquido, decimal pesoBruto, decimal? toleranciaPesoKg = null)
     {
         if (string.IsNullOrWhiteSpace(nome))
             return "Nome e obrigatorio.";
@@ -431,6 +439,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
             return "Peso liquido deve ser maior que zero.";
         if (pesoBruto <= 0)
             return "Peso bruto deve ser maior que zero.";
+        if (toleranciaPesoKg is < 0)
+            return "Tolerancia de peso nao pode ser negativa.";
 
         return null;
     }
@@ -498,8 +508,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
         );
     }
 
-    public record CreateProdutoRequest(string Nome, string CodigoBarras, decimal Preco, decimal PesoLiquido, decimal PesoBruto, bool IsActive = true);
-    public record UpdateProdutoRequest(string Nome, string CodigoBarras, decimal Preco, decimal PesoLiquido, decimal PesoBruto, bool IsActive = true);
+    public record CreateProdutoRequest(string Nome, string CodigoBarras, decimal Preco, decimal PesoLiquido, decimal PesoBruto, bool IsActive = true, decimal? ToleranciaPesoKg = null);
+    public record UpdateProdutoRequest(string Nome, string CodigoBarras, decimal Preco, decimal PesoLiquido, decimal PesoBruto, bool IsActive = true, decimal? ToleranciaPesoKg = null);
     public record ProdutoResponse(
         Guid Id,
         string Nome,
@@ -509,7 +519,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
         DateTime UpdatedAt,
         decimal PesoLiquido,
         decimal PesoBruto,
-        bool IsActive
+        bool IsActive,
+        decimal? ToleranciaPesoKg = null
     );
 
     public record PrecoProdutoResponse(
@@ -586,7 +597,8 @@ public class SMProdutosController(FlyGatesDbContext context) : ControllerBase
         int IdProduto,
         int IdFamilia,
         int IdProdutoBase,
-        DateTime DataUltimaAtualizacao
+        DateTime DataUltimaAtualizacao,
+        decimal? ToleranciaPesoKg = null
     );
 
     private record ProdutoLegacyPerfil(

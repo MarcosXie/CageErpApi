@@ -10,4 +10,7 @@ public class TotvsMockProdutoDao : BaseDao
     public decimal PesoLiquido { get; set; }
     public decimal PesoBruto { get; set; }
     public bool IsActive { get; set; } = true;
+
+    /// <summary>Tolerância de peso (kg) específica do produto; null usa o padrão global do CageOuts.</summary>
+    public decimal? ToleranciaPesoKg { get; set; }
 }
