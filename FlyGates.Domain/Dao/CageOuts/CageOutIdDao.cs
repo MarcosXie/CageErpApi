@@ -8,4 +8,5 @@ public class CageOutIdDao : BaseDao
     public required string Identifier { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime? LastSeenAt { get; set; }
+    public DateTime? BoundAt { get; set; }
 }

@@ -51,4 +51,24 @@ public class CageOutClientController(ICageOutClientService service) : Controller
         await service.DeleteAsync(id);
         return NoContent();
     }
+
+    /// <summary>Envia (substituindo a anterior, se houver) a imagem de fundo da tela Idle deste cliente.</summary>
+    [HttpPost("{id:guid}/background-image")]
+    [ProducesResponseType(typeof(CageOutClientResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UploadBackgroundImage([FromRoute] Guid id, IFormFile file)
+    {
+        await using var stream = file.OpenReadStream();
+        var updated = await service.UploadBackgroundImageAsync(id, stream, file.ContentType, file.Length);
+        return Ok(updated);
+    }
+
+    /// <summary>Remove a imagem de fundo configurada, revertendo o CageOuts para o layout padrão (logo).</summary>
+    [HttpDelete("{id:guid}/background-image")]
+    [ProducesResponseType(typeof(CageOutClientResponseDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RemoveBackgroundImage([FromRoute] Guid id)
+    {
+        var updated = await service.RemoveBackgroundImageAsync(id);
+        return Ok(updated);
+    }
 }

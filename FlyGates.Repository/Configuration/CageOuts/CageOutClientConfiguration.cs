@@ -23,6 +23,9 @@ public class CageOutClientConfiguration : IEntityTypeConfiguration<CageOutClient
         entity.Property(x => x.IsActive)
             .IsRequired();
 
+        entity.Property(x => x.BackgroundImageKey)
+            .HasMaxLength(300);
+
         entity.Property(x => x.CreatedAt)
             .IsRequired();
 

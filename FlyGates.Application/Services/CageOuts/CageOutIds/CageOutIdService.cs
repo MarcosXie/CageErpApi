@@ -13,6 +13,8 @@ public interface ICageOutIdService
     Task<CageOutIdResponseDto> GetByIdAsync(Guid id);
     Task<List<CageOutIdResponseDto>> GetAllAsync();
     Task HeartbeatAsync(string identifier);
+    Task BindAsync(Guid id);
+    Task UnbindAsync(Guid id);
 }
 
 public class CageOutIdService(
@@ -51,6 +53,23 @@ public class CageOutIdService(
         // Mesma convenção de CreatedAt/UpdatedAt (hora local do servidor), não UTC —
         // evita desalinhamento de 3h ao comparar com "agora" no front (América/São Paulo).
         entity.LastSeenAt = DateTime.Now;
+        await repository.UpdateAsync(entity);
+    }
+
+    public async Task BindAsync(Guid id)
+    {
+        var entity = await repository.GetByIdAsync(id);
+        if (entity.BoundAt is not null)
+            throw new ConflictException("Este Cage ID já está vinculado a outro terminal.");
+
+        entity.BoundAt = DateTime.Now;
+        await repository.UpdateAsync(entity);
+    }
+
+    public async Task UnbindAsync(Guid id)
+    {
+        var entity = await repository.GetByIdAsync(id);
+        entity.BoundAt = null;
         await repository.UpdateAsync(entity);
     }
 

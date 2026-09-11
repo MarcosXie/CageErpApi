@@ -55,6 +55,22 @@ public class S3MediaStorageService(
         }
     }
 
+    public async Task<string> UploadObjectAsync(Stream content, string objectKey, string contentType, CancellationToken cancellationToken = default)
+    {
+        var current = options.CurrentValue;
+        var request = new PutObjectRequest
+        {
+            BucketName = current.BucketName,
+            Key = objectKey,
+            InputStream = content,
+            ContentType = contentType,
+            AutoCloseStream = false,
+        };
+
+        await s3Client.PutObjectAsync(request, cancellationToken).ConfigureAwait(false);
+        return objectKey;
+    }
+
     public async Task SyncVideoLifecycleRuleAsync(int retentionDays, CancellationToken cancellationToken = default)
     {
         var current = options.CurrentValue;

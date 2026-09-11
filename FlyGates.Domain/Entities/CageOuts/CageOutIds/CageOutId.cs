@@ -10,4 +10,7 @@ public class CageOutId : BaseModel
 
     /// <summary>Timestamp (UTC) do último heartbeat recebido do terminal.</summary>
     public DateTime? LastSeenAt { get; set; }
+
+    /// <summary>Quando != null, este Cage ID está vinculado permanentemente a um terminal.</summary>
+    public DateTime? BoundAt { get; set; }
 }

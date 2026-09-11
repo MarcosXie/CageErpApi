@@ -42,4 +42,20 @@ public class CageOutIdController(ICageOutIdService service) : ControllerBase
         await service.HeartbeatAsync(identifier);
         return NoContent();
     }
+
+    /// <summary>Vincula permanentemente este Cage ID ao terminal que fez a requisição.</summary>
+    [HttpPost("{id:guid}/bind")]
+    public async Task<IActionResult> Bind(Guid id)
+    {
+        await service.BindAsync(id);
+        return NoContent();
+    }
+
+    /// <summary>Libera o v\u00ednculo, tornando o Cage ID dispon\u00edvel novamente.</summary>
+    [HttpPost("{id:guid}/unbind")]
+    public async Task<IActionResult> Unbind(Guid id)
+    {
+        await service.UnbindAsync(id);
+        return NoContent();
+    }
 }

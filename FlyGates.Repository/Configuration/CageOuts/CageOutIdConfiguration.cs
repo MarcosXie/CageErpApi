@@ -17,6 +17,8 @@ public class CageOutIdConfiguration : IEntityTypeConfiguration<CageOutIdDao>
         entity.Property(x => x.CreatedAt).IsRequired();
         entity.Property(x => x.UpdatedAt).IsRequired();
 
+        entity.Property(x => x.BoundAt);
+
         entity.HasIndex(x => x.Identifier)
             .IsUnique()
             .HasDatabaseName("idx_cage_out_id_identifier_unique");

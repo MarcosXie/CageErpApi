@@ -6,6 +6,8 @@ public class CageOutClientResponseDto
     public required string Name { get; set; }
     public required string Email { get; set; }
     public bool IsActive { get; set; }
+    public string? BackgroundImageKey { get; set; }
+    public string? BackgroundImageUrl { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

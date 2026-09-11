@@ -9,6 +9,9 @@ public interface IMediaStorageService
     /// <summary>Remove o objeto do bucket; não falha se a chave for vazia ou o objeto não existir.</summary>
     Task DeleteObjectAsync(string? objectKey, CancellationToken cancellationToken = default);
 
+    /// <summary>Envia o conteúdo para o bucket sob a chave informada e retorna a própria chave.</summary>
+    Task<string> UploadObjectAsync(Stream content, string objectKey, string contentType, CancellationToken cancellationToken = default);
+
     /// <summary>Sincroniza a regra de expiração automática (lifecycle) dos vídeos com o valor configurado.</summary>
     Task SyncVideoLifecycleRuleAsync(int retentionDays, CancellationToken cancellationToken = default);
 }

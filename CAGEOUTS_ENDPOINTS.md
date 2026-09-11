@@ -170,6 +170,27 @@ Response 200:
 
 Credenciais invalidas retornam 404.
 
+## Clientes (CageOutClient)
+
+Rota base:
+- /api/CageOutClient
+
+CRUD padrao (GET, GET/{id}, POST, PUT/{id}, DELETE/{id}).
+
+### Imagem de fundo da tela Idle
+- POST /api/CageOutClient/{id}/background-image
+  - multipart/form-data, campo `file`. Aceita apenas JPG/PNG, ate 5MB.
+  - Substitui a imagem anterior (apaga a antiga do S3) e retorna o `CageOutClientResponseDto`
+    atualizado com `backgroundImageKey` (chave S3 estavel, usada pelo CageOuts so para detectar
+    troca) e `backgroundImageUrl` (URL pre-assinada de leitura, gerada a cada consulta).
+- DELETE /api/CageOutClient/{id}/background-image
+  - Remove a imagem configurada (apaga do S3 e zera `backgroundImageKey`), revertendo o CageOuts
+    para o layout padrao (logo) na proxima vez que o terminal entrar na tela Idle.
+
+O CageOuts WPF resolve o Client via `CageOutUnit.clientId` (unidade configurada localmente em
+`CageIdentity.UnitId`) e consulta `GET /api/CageOutClient/{clientId}` a cada retorno a tela Idle,
+comparando `backgroundImageKey` com o ultimo valor conhecido para decidir se baixa a imagem de novo.
+
 ## Cage IDs (CageOutId)
 
 Um Cage ID identifica de forma unica um terminal CageOuts e pertence a uma unidade.
@@ -203,9 +224,22 @@ Rota base:
 ### Excluir Cage ID
 - DELETE /api/CageOutId/{id}
 
-O CageOuts WPF consulta unidades e Cage IDs ativos no primeiro inicio. A selecao
-e persistida localmente na secao `CageIdentity` de `appsettings.Production.json`
-e o `identifier` passa a ser enviado como `checkoutId` em vendas e rejeitos.
+### Vincular Cage ID a um terminal
+- POST /api/CageOutId/{id}/bind
+- Marca `boundAt` com a hora atual. Retorna 409 se o Cage ID já estiver vinculado
+  (`boundAt` não nulo) a outro terminal. O vínculo é permanente: só é liberado por
+  `/unbind` (chamado automaticamente pelo WPF ao reconfigurar para outro Cage ID,
+  ou manualmente por um admin no CageErpUI para liberar um terminal desativado).
+
+### Desvincular Cage ID
+- POST /api/CageOutId/{id}/unbind
+- Zera `boundAt`, tornando o Cage ID disponível novamente. Idempotente.
+
+O CageOuts WPF consulta unidades e Cage IDs ativos no primeiro inicio, filtrando da
+lista qualquer Cage ID com `boundAt` preenchido (exceto o já configurado no próprio
+terminal). A selecao e persistida localmente na secao `CageIdentity` de
+`appsettings.Production.json` e o `identifier` passa a ser enviado como `checkoutId`
+em vendas e rejeitos.
 
 ## Rejeitos (CageOutReject)
 
