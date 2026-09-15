@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using FlyGates.Application.Dao;
+using FlyGates.Application.Entities.CageOuts.CageClusters;
 using FlyGates.Application.Entities.CageOuts.CageOutClients;
 using FlyGates.Application.Entities.CageOuts.CageOutEmployees;
 using FlyGates.Application.Entities.CageOuts.CageOutIds;
@@ -15,6 +16,7 @@ public class DaoMapper : Profile
     public DaoMapper()
     {
 		CreateMap<CageOutClientDao, CageOutClient>().ReverseMap();
+		CreateMap<CageClusterDao, CageCluster>().ReverseMap();
 		CreateMap<CageOutUnitDao, CageOutUnit>().ReverseMap();
 		CreateMap<CageOutIdDao, CageOutId>().ReverseMap();
 		CreateMap<CageOutEmployeeDao, CageOutEmployee>().ReverseMap();

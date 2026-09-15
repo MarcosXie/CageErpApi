@@ -1,10 +1,12 @@
 ﻿using FlyGates.Application.Entities.CageOuts.CageOutClients;
+using FlyGates.Application.Entities.CageOuts.CageClusters;
 using FlyGates.Application.Entities.CageOuts.CageOutEmployees;
 using FlyGates.Application.Entities.CageOuts.CageOutIds;
 using FlyGates.Application.Entities.CageOuts.CageOutRejects;
 using FlyGates.Application.Entities.CageOuts.CageOutTransactions;
 using FlyGates.Application.Entities.CageOuts.CageOutUnits;
 using FlyGates.Application.Services.CageOuts.CageOutClients;
+using FlyGates.Application.Services.CageOuts.CageClusters;
 using FlyGates.Application.Services.CageOuts.CageOutEmployees;
 using FlyGates.Application.Services.CageOuts.CageOutIds;
 using FlyGates.Application.Services.CageOuts.CageOutRejects;
@@ -19,6 +21,7 @@ public static class DependencyInjection
     public static void AddApplication(this IServiceCollection services)
     {
         services.AddScoped<ICageOutClientService, CageOutClientService>();
+        services.AddScoped<ICageClusterService, CageClusterService>();
         services.AddScoped<ICageOutUnitService, CageOutUnitService>();
         services.AddScoped<ICageOutIdService, CageOutIdService>();
         services.AddScoped<ICageOutEmployeeService, CageOutEmployeeService>();

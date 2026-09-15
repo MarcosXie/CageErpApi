@@ -11,6 +11,7 @@ public class FlyGatesDbContext(DbContextOptions<FlyGatesDbContext> options) : Db
 {
     public virtual DbSet<TotvsMockProdutoDao> TotvsMockProdutos { get; set; }
     public virtual DbSet<CageOutClientDao> CageOutClients { get; set; }
+    public virtual DbSet<CageClusterDao> CageClusters { get; set; }
     public virtual DbSet<CageOutUnitDao> CageOutUnits { get; set; }
     public virtual DbSet<CageOutIdDao> CageOutIds { get; set; }
     public virtual DbSet<CageOutEmployeeDao> CageOutEmployees { get; set; }
@@ -22,6 +23,7 @@ public class FlyGatesDbContext(DbContextOptions<FlyGatesDbContext> options) : Db
     {
         modelBuilder.ApplyConfiguration(new TotvsMockProdutoConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutClientConfiguration());
+        modelBuilder.ApplyConfiguration(new CageClusterConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutUnitConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutIdConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutEmployeeConfiguration());

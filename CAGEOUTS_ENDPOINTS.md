@@ -197,6 +197,9 @@ Um Cage ID identifica de forma unica um terminal CageOuts e pertence a uma unida
 O campo `identifier` e obrigatorio, tem no maximo 80 caracteres, nao aceita espacos
 e possui indice unico no banco.
 
+O campo `cageClusterId` na resposta e opcional (`null` quando nao agrupado) e indica
+em qual CageCluster aquele Cage ID esta atualmente vinculado.
+
 Rota base:
 - /api/CageOutId
 
@@ -240,6 +243,67 @@ lista qualquer Cage ID com `boundAt` preenchido (exceto o j√° configurado no pr√
 terminal). A selecao e persistida localmente na secao `CageIdentity` de
 `appsettings.Production.json` e o `identifier` passa a ser enviado como `checkoutId`
 em vendas e rejeitos.
+
+## CageClusters (CageCluster)
+
+Um CageCluster representa um agrupamento de Cage IDs dentro de uma unica unidade.
+Cada cluster possui nome/codigo proprios e uma lista de `cageOutIds` vinculados.
+
+Regras:
+- Todos os Cage IDs informados em `cageOutIds` precisam existir.
+- Todos os Cage IDs informados em `cageOutIds` devem pertencer a mesma unidade (`unitId`) do cluster.
+- O `code` do cluster deve ser unico por unidade.
+
+Rota base:
+- /api/CageCluster
+
+### Listar clusters
+- GET /api/CageCluster
+
+### Buscar cluster
+- GET /api/CageCluster/{id}
+
+### Criar cluster
+- POST /api/CageCluster
+
+```json
+{
+  "unitId": "4f2e4bc2-5036-47d0-8f52-f247fd8e58f0",
+  "name": "Frente Loja",
+  "code": "CL-001",
+  "isActive": true,
+  "cageOutIds": [
+    "8d6be73b-43ef-4760-a0d0-702cafaf2478",
+    "5c935a98-b4f9-47fb-9da4-6cbf6cf58a67"
+  ]
+}
+```
+
+Response 201 (application/json):
+```json
+{
+  "id": "9a6b95a0-f5df-4fce-8f26-b7e0b2f18be0",
+  "unitId": "4f2e4bc2-5036-47d0-8f52-f247fd8e58f0",
+  "name": "Frente Loja",
+  "code": "CL-001",
+  "isActive": true,
+  "cageOutIds": [
+    "8d6be73b-43ef-4760-a0d0-702cafaf2478",
+    "5c935a98-b4f9-47fb-9da4-6cbf6cf58a67"
+  ],
+  "createdAt": "2026-09-15T14:32:01",
+  "updatedAt": "2026-09-15T14:32:01"
+}
+```
+
+### Atualizar cluster
+- PUT /api/CageCluster/{id}
+- Corpo igual ao da criacao.
+
+### Excluir cluster
+- DELETE /api/CageCluster/{id}
+
+Ao excluir, o cluster e removido e os Cage IDs vinculados sao desassociados (`cageClusterId = null`).
 
 ## Rejeitos (CageOutReject)
 

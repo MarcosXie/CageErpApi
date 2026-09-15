@@ -34,7 +34,14 @@ public class CageOutIdService(
     {
         await ValidateAsync(dto, id);
         var entity = await repository.GetByIdAsync(id);
+        var previousUnitId = entity.UnitId;
         mapper.Map(dto, entity);
+
+        if (previousUnitId != entity.UnitId)
+        {
+            entity.CageClusterId = null;
+        }
+
         await repository.UpdateAsync(entity);
     }
 
