@@ -37,9 +37,9 @@ public class CageOutIdController(ICageOutIdService service) : ControllerBase
 
     /// <summary>Chamado periodicamente pelo terminal CageOuts para sinalizar que está online.</summary>
     [HttpPost("{identifier}/heartbeat")]
-    public async Task<IActionResult> Heartbeat(string identifier)
+    public async Task<IActionResult> Heartbeat(string identifier, [FromBody] CageOutIdHeartbeatDto? request = null)
     {
-        await service.HeartbeatAsync(identifier);
+        await service.HeartbeatAsync(identifier, request);
         return NoContent();
     }
 

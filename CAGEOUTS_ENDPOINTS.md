@@ -200,6 +200,16 @@ e possui indice unico no banco.
 O campo `cageClusterId` na resposta e opcional (`null` quando nao agrupado) e indica
 em qual CageCluster aquele Cage ID esta atualmente vinculado.
 
+Campos adicionais relevantes na resposta (`CageOutIdResponseDto`):
+- `operationalStatus` (enum numerico):
+  - `0 = Unknown`
+  - `1 = Available`
+  - `2 = Busy`
+- `currentMode` (string opcional)
+- `statusUpdatedAt` (datetime opcional)
+- `lastSeenAt` (datetime opcional)
+- `boundAt` (datetime opcional)
+
 Rota base:
 - /api/CageOutId
 
@@ -226,6 +236,27 @@ Rota base:
 
 ### Excluir Cage ID
 - DELETE /api/CageOutId/{id}
+
+### Heartbeat do terminal CageOuts
+- POST /api/CageOutId/{identifier}/heartbeat
+
+Uso:
+- Mantem o terminal como online (`lastSeenAt`) e, opcionalmente, publica estado operacional atual.
+- Se enviado sem body, apenas atualiza `lastSeenAt`.
+
+Request body opcional (application/json):
+```json
+{
+  "operationalStatus": 1,
+  "currentMode": "Normal"
+}
+```
+
+Notas:
+- `operationalStatus` aceita `0` (Unknown), `1` (Available), `2` (Busy).
+- `currentMode` e livre (ex.: `Normal`, `Refund`, `Maintenance`).
+- `statusUpdatedAt` so e atualizado quando `operationalStatus` e enviado.
+- Response: `204 No Content`.
 
 ### Vincular Cage ID a um terminal
 - POST /api/CageOutId/{id}/bind
@@ -262,6 +293,38 @@ Rota base:
 
 ### Buscar cluster
 - GET /api/CageCluster/{id}
+
+### Snapshot operacional do cluster (telão)
+- GET /api/CageCluster/{id}/status
+
+Response 200 (application/json):
+```json
+{
+  "clusterId": "9a6b95a0-f5df-4fce-8f26-b7e0b2f18be0",
+  "unitId": "4f2e4bc2-5036-47d0-8f52-f247fd8e58f0",
+  "clusterName": "Frente Loja",
+  "clusterCode": "CL-001",
+  "generatedAt": "2026-09-16T10:45:00",
+  "cages": [
+    {
+      "cageOutId": "8d6be73b-43ef-4760-a0d0-702cafaf2478",
+      "identifier": "CAGE-001",
+      "isActive": true,
+      "isBound": true,
+      "isOnline": true,
+      "isAvailable": true,
+      "operationalStatus": 1,
+      "currentMode": "Normal",
+      "lastSeenAt": "2026-09-16T10:44:55",
+      "statusUpdatedAt": "2026-09-16T10:44:55"
+    }
+  ]
+}
+```
+
+Regra de disponibilidade usada pela API:
+- `isAvailable = isActive && isOnline && operationalStatus == Available`.
+- `isOnline` considera heartbeat nos ultimos 30 segundos.
 
 ### Criar cluster
 - POST /api/CageCluster
@@ -304,6 +367,24 @@ Response 201 (application/json):
 - DELETE /api/CageCluster/{id}
 
 Ao excluir, o cluster e removido e os Cage IDs vinculados sao desassociados (`cageClusterId = null`).
+
+## Monitoramento em tempo real (SignalR)
+
+Hub:
+- `/hubs/cagecluster`
+
+Metodos cliente -> servidor:
+- `SubscribeCluster(Guid clusterId)`
+- `UnsubscribeCluster(Guid clusterId)`
+
+Evento servidor -> cliente:
+- `ClusterStatusUpdated(CageClusterStatusSnapshotDto snapshot)`
+
+Fluxo recomendado para o telão:
+1. Conectar ao hub `/hubs/cagecluster`.
+2. Chamar `SubscribeCluster` para o cluster configurado.
+3. Buscar snapshot inicial via `GET /api/CageCluster/{id}/status`.
+4. Atualizar a UI a cada `ClusterStatusUpdated` recebido.
 
 ## Rejeitos (CageOutReject)
 

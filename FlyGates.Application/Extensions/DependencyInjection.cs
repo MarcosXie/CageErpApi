@@ -22,6 +22,7 @@ public static class DependencyInjection
     {
         services.AddScoped<ICageOutClientService, CageOutClientService>();
         services.AddScoped<ICageClusterService, CageClusterService>();
+        services.AddSingleton<ICageClusterStatusNotifier, NoOpCageClusterStatusNotifier>();
         services.AddScoped<ICageOutUnitService, CageOutUnitService>();
         services.AddScoped<ICageOutIdService, CageOutIdService>();
         services.AddScoped<ICageOutEmployeeService, CageOutEmployeeService>();

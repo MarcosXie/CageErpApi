@@ -1,4 +1,6 @@
 using FlyGates.Application.Extensions;
+using FlyGates.Application.Services.CageOuts.CageClusters;
+using FlyGates.Api.Hubs;
 using FlyGates.Infraestructure.Extensions;
 using FlyGates.Middlewares;
 using FlyGates.Repository.Extensions;
@@ -30,6 +32,7 @@ services.AddCors(options =>
 });
 
 services.AddControllers();
+services.AddSignalR();
 services.AddHealthChecks();
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen(c =>
@@ -39,6 +42,7 @@ services.AddSwaggerGen(c =>
 
 services.AddHttpContextAccessor();
 services.AddApplication();
+services.AddSingleton<ICageClusterStatusNotifier, CageClusterStatusNotifier>();
 services.AddRepository(config);
 services.AddInfrastructure(config);
 services.AddHttpClient();
@@ -56,6 +60,7 @@ app.UseCors("CorsPolicy");
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<CageClusterMonitorHub>("/hubs/cagecluster");
 app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();

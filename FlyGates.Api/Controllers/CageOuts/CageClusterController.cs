@@ -25,6 +25,15 @@ public class CageClusterController(ICageClusterService service) : ControllerBase
         return Ok(cluster);
     }
 
+    [HttpGet("{id:guid}/status")]
+    [ProducesResponseType(typeof(CageClusterStatusSnapshotDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStatus([FromRoute] Guid id)
+    {
+        var snapshot = await service.GetStatusSnapshotAsync(id);
+        return Ok(snapshot);
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(CageClusterResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

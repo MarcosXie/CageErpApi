@@ -7,6 +7,9 @@ public class CageOutIdResponseDto
     public Guid? CageClusterId { get; set; }
     public required string Identifier { get; set; }
     public bool IsActive { get; set; }
+    public CageOutOperationalStatus OperationalStatus { get; set; }
+    public string? CurrentMode { get; set; }
+    public DateTime? StatusUpdatedAt { get; set; }
     public DateTime? LastSeenAt { get; set; }
     public DateTime? BoundAt { get; set; }
     public DateTime CreatedAt { get; set; }

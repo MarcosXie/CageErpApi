@@ -15,6 +15,11 @@ public class CageOutIdConfiguration : IEntityTypeConfiguration<CageOutIdDao>
         entity.Property(x => x.CageClusterId);
         entity.Property(x => x.Identifier).HasMaxLength(80).IsRequired();
         entity.Property(x => x.IsActive).IsRequired();
+        entity.Property(x => x.OperationalStatus)
+            .IsRequired();
+        entity.Property(x => x.CurrentMode)
+            .HasMaxLength(40);
+        entity.Property(x => x.StatusUpdatedAt);
         entity.Property(x => x.CreatedAt).IsRequired();
         entity.Property(x => x.UpdatedAt).IsRequired();
 

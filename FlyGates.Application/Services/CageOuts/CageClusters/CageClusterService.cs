@@ -13,6 +13,7 @@ public interface ICageClusterService
     Task DeleteAsync(Guid id);
     Task<CageClusterResponseDto> GetByIdAsync(Guid id);
     Task<List<CageClusterResponseDto>> GetAllAsync();
+    Task<CageClusterStatusSnapshotDto> GetStatusSnapshotAsync(Guid id);
 }
 
 public class CageClusterService(
@@ -21,6 +22,8 @@ public class CageClusterService(
     ICageOutIdRepository cageOutIdRepository,
     IMapper mapper) : ICageClusterService
 {
+    private static readonly TimeSpan OnlineThreshold = TimeSpan.FromSeconds(30);
+
     public async Task<CageClusterResponseDto> CreateAsync(CageClusterDto dto)
     {
         Normalize(dto);
@@ -79,6 +82,47 @@ public class CageClusterService(
                 : [];
             return response;
         }).ToList();
+    }
+
+    public async Task<CageClusterStatusSnapshotDto> GetStatusSnapshotAsync(Guid id)
+    {
+        var cluster = await repository.GetByIdAsync(id);
+        var now = DateTime.Now;
+        var thresholdTime = now.Subtract(OnlineThreshold);
+
+        var cages = (await cageOutIdRepository.GetAsync())
+            .Where(item => item.CageClusterId == id)
+            .OrderBy(item => item.Identifier)
+            .Select(item =>
+            {
+                var isOnline = item.LastSeenAt.HasValue && item.LastSeenAt.Value >= thresholdTime;
+                var isAvailable = item.IsActive && isOnline && item.OperationalStatus == CageOutOperationalStatus.Available;
+
+                return new CageClusterStatusItemDto
+                {
+                    CageOutId = item.Id,
+                    Identifier = item.Identifier,
+                    IsActive = item.IsActive,
+                    IsBound = item.BoundAt.HasValue,
+                    IsOnline = isOnline,
+                    IsAvailable = isAvailable,
+                    OperationalStatus = item.OperationalStatus,
+                    CurrentMode = item.CurrentMode,
+                    LastSeenAt = item.LastSeenAt,
+                    StatusUpdatedAt = item.StatusUpdatedAt,
+                };
+            })
+            .ToList();
+
+        return new CageClusterStatusSnapshotDto
+        {
+            ClusterId = cluster.Id,
+            UnitId = cluster.UnitId,
+            ClusterName = cluster.Name,
+            ClusterCode = cluster.Code,
+            GeneratedAt = now,
+            Cages = cages,
+        };
     }
 
     private async Task<CageClusterResponseDto> BuildResponseAsync(CageCluster cluster)

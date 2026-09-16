@@ -1,4 +1,5 @@
 using AutoMapper;
+using FlyGates.Application.Services.CageOuts.CageClusters;
 using FlyGates.Application.Entities.CageOuts.CageOutIds;
 using FlyGates.Application.Entities.CageOuts.CageOutUnits;
 using FlyGates.Application.Exceptions;
@@ -12,7 +13,7 @@ public interface ICageOutIdService
     Task DeleteAsync(Guid id);
     Task<CageOutIdResponseDto> GetByIdAsync(Guid id);
     Task<List<CageOutIdResponseDto>> GetAllAsync();
-    Task HeartbeatAsync(string identifier);
+    Task HeartbeatAsync(string identifier, CageOutIdHeartbeatDto? heartbeatDto = null);
     Task BindAsync(Guid id);
     Task UnbindAsync(Guid id);
 }
@@ -20,6 +21,7 @@ public interface ICageOutIdService
 public class CageOutIdService(
     ICageOutIdRepository repository,
     ICageOutUnitRepository unitRepository,
+    ICageClusterStatusNotifier clusterStatusNotifier,
     IMapper mapper) : ICageOutIdService
 {
     public async Task<CageOutIdResponseDto> CreateAsync(CageOutIdDto dto)
@@ -53,14 +55,29 @@ public class CageOutIdService(
     public async Task<List<CageOutIdResponseDto>> GetAllAsync() =>
         mapper.Map<List<CageOutIdResponseDto>>(await repository.GetAsync());
 
-    public async Task HeartbeatAsync(string identifier)
+    public async Task HeartbeatAsync(string identifier, CageOutIdHeartbeatDto? heartbeatDto = null)
     {
         var entity = await repository.FirstOrDefaultAsync(x => x.Identifier == identifier)
             ?? throw new NotFoundException("Cage ID");
         // Mesma convenção de CreatedAt/UpdatedAt (hora local do servidor), não UTC —
         // evita desalinhamento de 3h ao comparar com "agora" no front (América/São Paulo).
         entity.LastSeenAt = DateTime.Now;
+
+        if (heartbeatDto?.OperationalStatus is not null)
+        {
+            entity.OperationalStatus = heartbeatDto.OperationalStatus.Value;
+            entity.CurrentMode = string.IsNullOrWhiteSpace(heartbeatDto.CurrentMode)
+                ? null
+                : heartbeatDto.CurrentMode.Trim();
+            entity.StatusUpdatedAt = DateTime.Now;
+        }
+
         await repository.UpdateAsync(entity);
+
+        if (entity.CageClusterId.HasValue)
+        {
+            await clusterStatusNotifier.NotifyClusterStatusChangedAsync(entity.CageClusterId.Value);
+        }
     }
 
     public async Task BindAsync(Guid id)
