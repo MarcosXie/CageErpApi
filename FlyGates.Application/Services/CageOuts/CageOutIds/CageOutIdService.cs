@@ -42,6 +42,7 @@ public class CageOutIdService(
         if (previousUnitId != entity.UnitId)
         {
             entity.CageClusterId = null;
+            entity.ClusterBoxNumber = null;
         }
 
         await repository.UpdateAsync(entity);

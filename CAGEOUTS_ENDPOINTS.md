@@ -197,19 +197,6 @@ Um Cage ID identifica de forma unica um terminal CageOuts e pertence a uma unida
 O campo `identifier` e obrigatorio, tem no maximo 80 caracteres, nao aceita espacos
 e possui indice unico no banco.
 
-O campo `cageClusterId` na resposta e opcional (`null` quando nao agrupado) e indica
-em qual CageCluster aquele Cage ID esta atualmente vinculado.
-
-Campos adicionais relevantes na resposta (`CageOutIdResponseDto`):
-- `operationalStatus` (enum numerico):
-  - `0 = Unknown`
-  - `1 = Available`
-  - `2 = Busy`
-- `currentMode` (string opcional)
-- `statusUpdatedAt` (datetime opcional)
-- `lastSeenAt` (datetime opcional)
-- `boundAt` (datetime opcional)
-
 Rota base:
 - /api/CageOutId
 
@@ -237,27 +224,6 @@ Rota base:
 ### Excluir Cage ID
 - DELETE /api/CageOutId/{id}
 
-### Heartbeat do terminal CageOuts
-- POST /api/CageOutId/{identifier}/heartbeat
-
-Uso:
-- Mantem o terminal como online (`lastSeenAt`) e, opcionalmente, publica estado operacional atual.
-- Se enviado sem body, apenas atualiza `lastSeenAt`.
-
-Request body opcional (application/json):
-```json
-{
-  "operationalStatus": 1,
-  "currentMode": "Normal"
-}
-```
-
-Notas:
-- `operationalStatus` aceita `0` (Unknown), `1` (Available), `2` (Busy).
-- `currentMode` e livre (ex.: `Normal`, `Refund`, `Maintenance`).
-- `statusUpdatedAt` so e atualizado quando `operationalStatus` e enviado.
-- Response: `204 No Content`.
-
 ### Vincular Cage ID a um terminal
 - POST /api/CageOutId/{id}/bind
 - Marca `boundAt` com a hora atual. Retorna 409 se o Cage ID já estiver vinculado
@@ -275,56 +241,44 @@ terminal). A selecao e persistida localmente na secao `CageIdentity` de
 `appsettings.Production.json` e o `identifier` passa a ser enviado como `checkoutId`
 em vendas e rejeitos.
 
+Campos relevantes de retorno de Cage ID:
+- `cageClusterId` (Guid|null): cluster vinculado.
+- `clusterBoxNumber` (int|null): numero do caixa dentro do cluster (1..N).
+- `lastSeenAt` (datetime|null): ultimo heartbeat.
+
+### Heartbeat do Cage ID
+- POST /api/CageOutId/{identifier}/heartbeat
+
+Body opcional (application/json):
+```json
+{
+  "operationalStatus": 1,
+  "currentMode": "Normal"
+}
+```
+
+Se enviado sem body, atualiza somente `lastSeenAt`.
+
 ## CageClusters (CageCluster)
-
-Um CageCluster representa um agrupamento de Cage IDs dentro de uma unica unidade.
-Cada cluster possui nome/codigo proprios e uma lista de `cageOutIds` vinculados.
-
-Regras:
-- Todos os Cage IDs informados em `cageOutIds` precisam existir.
-- Todos os Cage IDs informados em `cageOutIds` devem pertencer a mesma unidade (`unitId`) do cluster.
-- O `code` do cluster deve ser unico por unidade.
 
 Rota base:
 - /api/CageCluster
+
+Um cluster agrupa Cage IDs de uma mesma unidade e define a numeracao de caixas.
+Essa numeracao e persistida no vinculo (`clusterBoxNumber`) e sempre compactada pela API
+em `1..N` conforme a ordem recebida.
+
+Regras:
+- Todos os Cage IDs devem existir.
+- Todos os Cage IDs devem pertencer a mesma `unitId` do cluster.
+- `code` deve ser unico por unidade.
+- Ao salvar, a API renumera sempre sem buracos.
 
 ### Listar clusters
 - GET /api/CageCluster
 
 ### Buscar cluster
 - GET /api/CageCluster/{id}
-
-### Snapshot operacional do cluster (telão)
-- GET /api/CageCluster/{id}/status
-
-Response 200 (application/json):
-```json
-{
-  "clusterId": "9a6b95a0-f5df-4fce-8f26-b7e0b2f18be0",
-  "unitId": "4f2e4bc2-5036-47d0-8f52-f247fd8e58f0",
-  "clusterName": "Frente Loja",
-  "clusterCode": "CL-001",
-  "generatedAt": "2026-09-16T10:45:00",
-  "cages": [
-    {
-      "cageOutId": "8d6be73b-43ef-4760-a0d0-702cafaf2478",
-      "identifier": "CAGE-001",
-      "isActive": true,
-      "isBound": true,
-      "isOnline": true,
-      "isAvailable": true,
-      "operationalStatus": 1,
-      "currentMode": "Normal",
-      "lastSeenAt": "2026-09-16T10:44:55",
-      "statusUpdatedAt": "2026-09-16T10:44:55"
-    }
-  ]
-}
-```
-
-Regra de disponibilidade usada pela API:
-- `isAvailable = isActive && isOnline && operationalStatus == Available`.
-- `isOnline` considera heartbeat nos ultimos 30 segundos.
 
 ### Criar cluster
 - POST /api/CageCluster
@@ -335,6 +289,16 @@ Regra de disponibilidade usada pela API:
   "name": "Frente Loja",
   "code": "CL-001",
   "isActive": true,
+  "members": [
+    {
+      "cageOutId": "8d6be73b-43ef-4760-a0d0-702cafaf2478",
+      "boxNumber": 1
+    },
+    {
+      "cageOutId": "5c935a98-b4f9-47fb-9da4-6cbf6cf58a67",
+      "boxNumber": 2
+    }
+  ],
   "cageOutIds": [
     "8d6be73b-43ef-4760-a0d0-702cafaf2478",
     "5c935a98-b4f9-47fb-9da4-6cbf6cf58a67"
@@ -342,22 +306,10 @@ Regra de disponibilidade usada pela API:
 }
 ```
 
-Response 201 (application/json):
-```json
-{
-  "id": "9a6b95a0-f5df-4fce-8f26-b7e0b2f18be0",
-  "unitId": "4f2e4bc2-5036-47d0-8f52-f247fd8e58f0",
-  "name": "Frente Loja",
-  "code": "CL-001",
-  "isActive": true,
-  "cageOutIds": [
-    "8d6be73b-43ef-4760-a0d0-702cafaf2478",
-    "5c935a98-b4f9-47fb-9da4-6cbf6cf58a67"
-  ],
-  "createdAt": "2026-09-15T14:32:01",
-  "updatedAt": "2026-09-15T14:32:01"
-}
-```
+Compatibilidade:
+- `members` e o contrato recomendado para create/update.
+- `cageOutIds` e mantido para clientes legados.
+- Se ambos forem enviados, a API prioriza a ordem de `members`.
 
 ### Atualizar cluster
 - PUT /api/CageCluster/{id}
@@ -366,12 +318,20 @@ Response 201 (application/json):
 ### Excluir cluster
 - DELETE /api/CageCluster/{id}
 
-Ao excluir, o cluster e removido e os Cage IDs vinculados sao desassociados (`cageClusterId = null`).
+Ao excluir, o cluster e removido e os Cage IDs vinculados sao desassociados.
+
+### Snapshot de status operacional do cluster
+- GET /api/CageCluster/{id}/status
+
+Cada item de `cages` inclui:
+- `boxNumber`: numero do caixa dentro do cluster.
+- `identifier`: identificador do Cage ID.
+- `isAvailable`: disponibilidade operacional atual.
 
 ## Monitoramento em tempo real (SignalR)
 
 Hub:
-- `/hubs/cagecluster`
+- /hubs/cagecluster
 
 Metodos cliente -> servidor:
 - `SubscribeCluster(Guid clusterId)`
@@ -380,11 +340,7 @@ Metodos cliente -> servidor:
 Evento servidor -> cliente:
 - `ClusterStatusUpdated(CageClusterStatusSnapshotDto snapshot)`
 
-Fluxo recomendado para o telão:
-1. Conectar ao hub `/hubs/cagecluster`.
-2. Chamar `SubscribeCluster` para o cluster configurado.
-3. Buscar snapshot inicial via `GET /api/CageCluster/{id}/status`.
-4. Atualizar a UI a cada `ClusterStatusUpdated` recebido.
+No telão, ordene por `boxNumber` e priorize o menor numero livre.
 
 ## Rejeitos (CageOutReject)
 

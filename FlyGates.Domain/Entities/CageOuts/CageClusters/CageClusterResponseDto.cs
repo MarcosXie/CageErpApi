@@ -8,6 +8,7 @@ public class CageClusterResponseDto
     public required string Code { get; set; }
     public bool IsActive { get; set; }
     public List<Guid> CageOutIds { get; set; } = [];
+    public List<CageClusterMemberDto> Members { get; set; } = [];
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

@@ -22,6 +22,8 @@ public class CageClusterService(
     ICageOutIdRepository cageOutIdRepository,
     IMapper mapper) : ICageClusterService
 {
+    private sealed record ClusterAssignment(Guid CageOutId, int BoxNumber);
+
     private static readonly TimeSpan OnlineThreshold = TimeSpan.FromSeconds(30);
 
     public async Task<CageClusterResponseDto> CreateAsync(CageClusterDto dto)
@@ -32,7 +34,7 @@ public class CageClusterService(
         var entity = mapper.Map<CageCluster>(dto);
         var id = await repository.CreateAsync(entity);
 
-        await SyncCageOutAssignmentsAsync(id, dto.UnitId, dto.CageOutIds);
+        await SyncCageOutAssignmentsAsync(id, dto.UnitId, ToAssignments(dto));
         var created = await repository.GetByIdAsync(id);
         return await BuildResponseAsync(created);
     }
@@ -46,7 +48,7 @@ public class CageClusterService(
         mapper.Map(dto, entity);
         await repository.UpdateAsync(entity);
 
-        await SyncCageOutAssignmentsAsync(id, dto.UnitId, dto.CageOutIds);
+        await SyncCageOutAssignmentsAsync(id, dto.UnitId, ToAssignments(dto));
     }
 
     public async Task DeleteAsync(Guid id)
@@ -67,21 +69,7 @@ public class CageClusterService(
         var clusters = await repository.GetAsync();
         var cageOutIds = await cageOutIdRepository.GetAsync();
 
-        var cageOutIdsByCluster = cageOutIds
-            .Where(item => item.CageClusterId.HasValue)
-            .GroupBy(item => item.CageClusterId!.Value)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Select(item => item.Id).ToList());
-
-        return clusters.Select(cluster =>
-        {
-            var response = mapper.Map<CageClusterResponseDto>(cluster);
-            response.CageOutIds = cageOutIdsByCluster.TryGetValue(cluster.Id, out var ids)
-                ? ids
-                : [];
-            return response;
-        }).ToList();
+        return clusters.Select(cluster => BuildResponse(cluster, cageOutIds)).ToList();
     }
 
     public async Task<CageClusterStatusSnapshotDto> GetStatusSnapshotAsync(Guid id)
@@ -90,10 +78,12 @@ public class CageClusterService(
         var now = DateTime.Now;
         var thresholdTime = now.Subtract(OnlineThreshold);
 
-        var cages = (await cageOutIdRepository.GetAsync())
+        var orderedCages = OrderClusterMembers((await cageOutIdRepository.GetAsync())
             .Where(item => item.CageClusterId == id)
-            .OrderBy(item => item.Identifier)
-            .Select(item =>
+            .ToList());
+
+        var cages = orderedCages
+            .Select((item, index) =>
             {
                 var isOnline = item.LastSeenAt.HasValue && item.LastSeenAt.Value >= thresholdTime;
                 var isAvailable = item.IsActive && isOnline && item.OperationalStatus == CageOutOperationalStatus.Available;
@@ -101,6 +91,7 @@ public class CageClusterService(
                 return new CageClusterStatusItemDto
                 {
                     CageOutId = item.Id,
+                    BoxNumber = item.ClusterBoxNumber ?? (index + 1),
                     Identifier = item.Identifier,
                     IsActive = item.IsActive,
                     IsBound = item.BoundAt.HasValue,
@@ -127,11 +118,18 @@ public class CageClusterService(
 
     private async Task<CageClusterResponseDto> BuildResponseAsync(CageCluster cluster)
     {
+        return BuildResponse(cluster, await cageOutIdRepository.GetAsync());
+    }
+
+    private CageClusterResponseDto BuildResponse(CageCluster cluster, List<CageOutId> allCageOutIds)
+    {
         var response = mapper.Map<CageClusterResponseDto>(cluster);
-        response.CageOutIds = (await cageOutIdRepository.GetAsync())
-            .Where(item => item.CageClusterId == cluster.Id)
-            .Select(item => item.Id)
-            .ToList();
+
+        var orderedMembers = BuildMemberDtos(
+            OrderClusterMembers(allCageOutIds.Where(item => item.CageClusterId == cluster.Id).ToList()));
+
+        response.Members = orderedMembers;
+        response.CageOutIds = orderedMembers.Select(member => member.CageOutId).ToList();
         return response;
     }
 
@@ -157,7 +155,7 @@ public class CageClusterService(
         if (duplicateCode)
             throw new BadRequestException("Ja existe um cluster com este codigo nesta unidade.");
 
-        var selectedIds = dto.CageOutIds.Distinct().ToList();
+        var selectedIds = ToAssignments(dto).Select(item => item.CageOutId).ToList();
         if (selectedIds.Count == 0)
             return;
 
@@ -173,10 +171,12 @@ public class CageClusterService(
             throw new BadRequestException("Todos os Cage IDs do cluster devem pertencer a mesma unidade.");
     }
 
-    private async Task SyncCageOutAssignmentsAsync(Guid clusterId, Guid unitId, List<Guid> selectedIds)
+    private async Task SyncCageOutAssignmentsAsync(Guid clusterId, Guid unitId, List<ClusterAssignment> assignments)
     {
-        var targetIds = selectedIds.Distinct().ToHashSet();
+        var targetIds = assignments.Select(item => item.CageOutId).ToHashSet();
         var cageOutIds = await cageOutIdRepository.GetAsync();
+        var cageOutById = cageOutIds.ToDictionary(item => item.Id, item => item);
+        var clustersToReindex = new HashSet<Guid>();
 
         var currentlyAssigned = cageOutIds
             .Where(item => item.CageClusterId == clusterId)
@@ -184,23 +184,36 @@ public class CageClusterService(
             .ToHashSet();
 
         var idsToUnassign = currentlyAssigned.Where(id => !targetIds.Contains(id)).ToList();
-        var idsToAssign = targetIds.Where(id => !currentlyAssigned.Contains(id)).ToList();
 
         foreach (var id in idsToUnassign)
         {
-            var item = await cageOutIdRepository.GetByIdAsync(id);
+            if (!cageOutById.TryGetValue(id, out var item))
+                continue;
+
             item.CageClusterId = null;
+            item.ClusterBoxNumber = null;
             await cageOutIdRepository.UpdateAsync(item);
         }
 
-        foreach (var id in idsToAssign)
+        foreach (var assignment in assignments)
         {
-            var item = await cageOutIdRepository.GetByIdAsync(id);
+            if (!cageOutById.TryGetValue(assignment.CageOutId, out var item))
+                throw new BadRequestException("Um ou mais Cage IDs informados nao existem.");
+
             if (item.UnitId != unitId)
                 throw new BadRequestException("Cage ID fora da unidade selecionada.");
 
+            if (item.CageClusterId.HasValue && item.CageClusterId.Value != clusterId)
+                clustersToReindex.Add(item.CageClusterId.Value);
+
             item.CageClusterId = clusterId;
+            item.ClusterBoxNumber = assignment.BoxNumber;
             await cageOutIdRepository.UpdateAsync(item);
+        }
+
+        foreach (var movedClusterId in clustersToReindex)
+        {
+            await ReindexClusterMembersAsync(movedClusterId);
         }
     }
 
@@ -215,13 +228,87 @@ public class CageClusterService(
         {
             var item = await cageOutIdRepository.GetByIdAsync(id);
             item.CageClusterId = null;
+            item.ClusterBoxNumber = null;
             await cageOutIdRepository.UpdateAsync(item);
         }
+    }
+
+    private async Task ReindexClusterMembersAsync(Guid clusterId)
+    {
+        var orderedMembers = OrderClusterMembers((await cageOutIdRepository.GetAsync())
+            .Where(item => item.CageClusterId == clusterId)
+            .ToList());
+
+        for (var index = 0; index < orderedMembers.Count; index++)
+        {
+            var expectedBoxNumber = index + 1;
+            var item = orderedMembers[index];
+            if (item.ClusterBoxNumber == expectedBoxNumber)
+                continue;
+
+            item.ClusterBoxNumber = expectedBoxNumber;
+            await cageOutIdRepository.UpdateAsync(item);
+        }
+    }
+
+    private static List<CageOutId> OrderClusterMembers(List<CageOutId> members)
+    {
+        return members
+            .OrderBy(item => item.ClusterBoxNumber ?? int.MaxValue)
+            .ThenBy(item => item.Identifier, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static List<CageClusterMemberDto> BuildMemberDtos(List<CageOutId> members)
+    {
+        return members
+            .Select((item, index) => new CageClusterMemberDto
+            {
+                CageOutId = item.Id,
+                BoxNumber = item.ClusterBoxNumber ?? (index + 1),
+            })
+            .ToList();
     }
 
     private static void Normalize(CageClusterDto dto)
     {
         dto.Name = dto.Name.Trim();
         dto.Code = dto.Code.Trim();
+
+        var sourceIds = dto.Members.Count > 0
+            ? dto.Members.Select(member => member.CageOutId)
+            : dto.CageOutIds;
+
+        var uniqueIds = new List<Guid>();
+        var seen = new HashSet<Guid>();
+
+        foreach (var id in sourceIds)
+        {
+            if (seen.Add(id))
+                uniqueIds.Add(id);
+        }
+
+        dto.CageOutIds = uniqueIds;
+        dto.Members = uniqueIds
+            .Select((id, index) => new CageClusterMemberDto
+            {
+                CageOutId = id,
+                BoxNumber = index + 1,
+            })
+            .ToList();
+    }
+
+    private static List<ClusterAssignment> ToAssignments(CageClusterDto dto)
+    {
+        if (dto.Members.Count > 0)
+        {
+            return dto.Members
+                .Select(member => new ClusterAssignment(member.CageOutId, member.BoxNumber))
+                .ToList();
+        }
+
+        return dto.CageOutIds
+            .Select((id, index) => new ClusterAssignment(id, index + 1))
+            .ToList();
     }
 }

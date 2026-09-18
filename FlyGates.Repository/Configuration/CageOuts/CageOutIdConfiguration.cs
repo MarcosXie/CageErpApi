@@ -13,6 +13,7 @@ public class CageOutIdConfiguration : IEntityTypeConfiguration<CageOutIdDao>
 
         entity.Property(x => x.UnitId).IsRequired();
         entity.Property(x => x.CageClusterId);
+        entity.Property(x => x.ClusterBoxNumber);
         entity.Property(x => x.Identifier).HasMaxLength(80).IsRequired();
         entity.Property(x => x.IsActive).IsRequired();
         entity.Property(x => x.OperationalStatus)
@@ -32,6 +33,8 @@ public class CageOutIdConfiguration : IEntityTypeConfiguration<CageOutIdDao>
             .HasDatabaseName("idx_cage_out_id_unit_id");
         entity.HasIndex(x => x.CageClusterId)
             .HasDatabaseName("idx_cage_out_id_cage_cluster_id");
+        entity.HasIndex(x => new { x.CageClusterId, x.ClusterBoxNumber })
+            .HasDatabaseName("idx_cage_out_id_cluster_box_number");
 
         entity.HasOne<CageOutUnitDao>()
             .WithMany()

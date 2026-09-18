@@ -6,6 +6,7 @@ public class CageOutId : BaseModel
 {
     public required Guid UnitId { get; set; }
     public Guid? CageClusterId { get; set; }
+    public int? ClusterBoxNumber { get; set; }
     public required string Identifier { get; set; }
     public bool IsActive { get; set; } = true;
     public CageOutOperationalStatus OperationalStatus { get; set; } = CageOutOperationalStatus.Unknown;

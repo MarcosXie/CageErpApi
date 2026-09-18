@@ -5,6 +5,7 @@ public class CageOutIdResponseDto
     public required Guid Id { get; set; }
     public required Guid UnitId { get; set; }
     public Guid? CageClusterId { get; set; }
+    public int? ClusterBoxNumber { get; set; }
     public required string Identifier { get; set; }
     public bool IsActive { get; set; }
     public CageOutOperationalStatus OperationalStatus { get; set; }
