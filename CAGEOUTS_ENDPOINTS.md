@@ -194,8 +194,9 @@ comparando `backgroundImageKey` com o ultimo valor conhecido para decidir se bai
 ## Cage IDs (CageOutId)
 
 Um Cage ID identifica de forma unica um terminal CageOuts e pertence a uma unidade.
-O campo `identifier` e obrigatorio, tem no maximo 80 caracteres, nao aceita espacos
-e possui indice unico no banco.
+O campo `identifier` agora e gerado automaticamente pela API no formato `CageId_004`
+(prefixo fixo + numero sequencial global). A sequencia e unica para toda a base,
+independente de cliente ou unidade, e o `identifier` nao pode ser editado apos criacao.
 
 Rota base:
 - /api/CageOutId
@@ -212,14 +213,17 @@ Rota base:
 ```json
 {
   "unitId": "4f2e4bc2-5036-47d0-8f52-f247fd8e58f0",
-  "identifier": "CAGE-001",
   "isActive": true
 }
 ```
 
+Resposta `201 Created` retorna o `CageOutIdResponseDto` com `identifier` ja preenchido
+automaticamente (ex.: `CageId_004`).
+
 ### Atualizar Cage ID
 - PUT /api/CageOutId/{id}
-- Corpo igual ao da criacao.
+- Corpo igual ao da criacao (`unitId` e `isActive`).
+- O campo `identifier` nao e aceito para alteracao neste endpoint.
 
 ### Excluir Cage ID
 - DELETE /api/CageOutId/{id}

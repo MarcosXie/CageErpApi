@@ -16,7 +16,8 @@ public class DtoToDomain : Profile
 	    CreateMap<CageOutClientDto, CageOutClient>();
 	    CreateMap<CageClusterDto, CageCluster>();
 	    CreateMap<CageOutUnitDto, CageOutUnit>();
-	    CreateMap<CageOutIdDto, CageOutId>();
+	    CreateMap<CageOutIdDto, CageOutId>()
+	        .ForMember(dest => dest.Identifier, opt => opt.Ignore());
 	    CreateMap<CageOutEmployeeDto, CageOutEmployee>();
 	    CreateMap<CageOutEmployeeUpdateDto, CageOutEmployee>();
 	    CreateMap<CageOutRejectDto, CageOutReject>();

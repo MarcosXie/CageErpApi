@@ -14,6 +14,7 @@ public class FlyGatesDbContext(DbContextOptions<FlyGatesDbContext> options) : Db
     public virtual DbSet<CageClusterDao> CageClusters { get; set; }
     public virtual DbSet<CageOutUnitDao> CageOutUnits { get; set; }
     public virtual DbSet<CageOutIdDao> CageOutIds { get; set; }
+    public virtual DbSet<CageOutIdSequenceDao> CageOutIdSequences { get; set; }
     public virtual DbSet<CageOutEmployeeDao> CageOutEmployees { get; set; }
     public virtual DbSet<CageOutRejectDao> CageOutRejects { get; set; }
     public virtual DbSet<CageOutTransactionDao> CageOutTransactions { get; set; }
@@ -26,6 +27,7 @@ public class FlyGatesDbContext(DbContextOptions<FlyGatesDbContext> options) : Db
         modelBuilder.ApplyConfiguration(new CageClusterConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutUnitConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutIdConfiguration());
+        modelBuilder.ApplyConfiguration(new CageOutIdSequenceConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutEmployeeConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutRejectConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutTransactionConfiguration());

@@ -27,17 +27,24 @@ public class CageOutIdService(
     public async Task<CageOutIdResponseDto> CreateAsync(CageOutIdDto dto)
     {
         await ValidateAsync(dto);
-        var entity = mapper.Map<CageOutId>(dto);
-        var id = await repository.CreateAsync(entity);
+        var entity = new CageOutId
+        {
+            UnitId = dto.UnitId,
+            IsActive = dto.IsActive,
+            Identifier = string.Empty
+        };
+
+        var id = await repository.CreateWithGeneratedIdentifierAsync(entity);
         return mapper.Map<CageOutIdResponseDto>(await repository.GetByIdAsync(id));
     }
 
     public async Task UpdateAsync(Guid id, CageOutIdDto dto)
     {
-        await ValidateAsync(dto, id);
+        await ValidateAsync(dto);
         var entity = await repository.GetByIdAsync(id);
         var previousUnitId = entity.UnitId;
-        mapper.Map(dto, entity);
+        entity.UnitId = dto.UnitId;
+        entity.IsActive = dto.IsActive;
 
         if (previousUnitId != entity.UnitId)
         {
@@ -98,20 +105,8 @@ public class CageOutIdService(
         await repository.UpdateAsync(entity);
     }
 
-    private async Task ValidateAsync(CageOutIdDto dto, Guid? currentId = null)
+    private async Task ValidateAsync(CageOutIdDto dto)
     {
-        dto.Identifier = dto.Identifier.Trim();
-        if (string.IsNullOrWhiteSpace(dto.Identifier) || dto.Identifier.Any(char.IsWhiteSpace))
-            throw new BadRequestException("O identificador é obrigatório e não pode conter espaços.");
-        if (dto.Identifier.Length > 80)
-            throw new BadRequestException("O identificador deve ter no máximo 80 caracteres.");
-
         _ = await unitRepository.GetByIdAsync(dto.UnitId);
-
-        var duplicate = (await repository.GetAsync()).Any(item =>
-            item.Id != currentId &&
-            string.Equals(item.Identifier, dto.Identifier, StringComparison.OrdinalIgnoreCase));
-        if (duplicate)
-            throw new BadRequestException("Já existe um Cage ID com este identificador.");
     }
 }

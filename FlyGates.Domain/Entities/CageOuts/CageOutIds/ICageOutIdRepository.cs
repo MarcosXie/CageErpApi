@@ -3,4 +3,7 @@ using FlyGates.Domain.Dao;
 
 namespace FlyGates.Application.Entities.CageOuts.CageOutIds;
 
-public interface ICageOutIdRepository : IBaseRepository<CageOutIdDao, CageOutId>;
+public interface ICageOutIdRepository : IBaseRepository<CageOutIdDao, CageOutId>
+{
+    Task<Guid> CreateWithGeneratedIdentifierAsync(CageOutId item, CancellationToken cancellationToken = default);
+}
