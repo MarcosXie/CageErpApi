@@ -294,6 +294,13 @@ Retorna o snapshot mais recente da sessao de compra em andamento para o CageOut,
 incluindo itens, total atual e snapshots (foto/video). Quando nao houver sessao
 ativa recente, `session.isActive` vem `false` e `items` vazio.
 
+### Demanda de sessao ao vivo por Cage ID
+- GET /api/CageOutId/{identifier}/live-session-demand
+
+Retorna se existe consumidor ativo da telemetria ao vivo para aquele Cage ID
+(`shouldPublishLiveSession`). O terminal WPF usa este endpoint para so enviar
+payload pesado (itens + snapshots) quando houver tela de monitoramento aberta.
+
 ## CageClusters (CageCluster)
 
 Rota base:

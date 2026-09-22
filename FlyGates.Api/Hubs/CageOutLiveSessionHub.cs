@@ -9,16 +9,24 @@ public interface ICageOutLiveSessionClient
     Task SessionUpdated(CageOutLiveSessionResponseDto snapshot);
 }
 
-public sealed class CageOutLiveSessionHub : Hub<ICageOutLiveSessionClient>
+public sealed class CageOutLiveSessionHub(ICageOutLiveSessionDemandStore demandStore) : Hub<ICageOutLiveSessionClient>
 {
-    public Task SubscribeCageOut(Guid cageOutId)
+    public async Task SubscribeCageOut(Guid cageOutId)
     {
-        return Groups.AddToGroupAsync(Context.ConnectionId, GetGroupName(cageOutId));
+        demandStore.Subscribe(cageOutId, Context.ConnectionId);
+        await Groups.AddToGroupAsync(Context.ConnectionId, GetGroupName(cageOutId));
     }
 
-    public Task UnsubscribeCageOut(Guid cageOutId)
+    public async Task UnsubscribeCageOut(Guid cageOutId)
     {
-        return Groups.RemoveFromGroupAsync(Context.ConnectionId, GetGroupName(cageOutId));
+        demandStore.Unsubscribe(cageOutId, Context.ConnectionId);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, GetGroupName(cageOutId));
+    }
+
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        demandStore.UnsubscribeAll(Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
     }
 
     public static string GetGroupName(Guid cageOutId)

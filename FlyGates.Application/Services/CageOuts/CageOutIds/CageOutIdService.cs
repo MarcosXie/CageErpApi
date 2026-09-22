@@ -15,6 +15,7 @@ public interface ICageOutIdService
     Task<List<CageOutIdResponseDto>> GetAllAsync();
     Task HeartbeatAsync(string identifier, CageOutIdHeartbeatDto? heartbeatDto = null);
     Task<CageOutLiveSessionResponseDto> GetLiveSessionAsync(Guid id);
+    Task<CageOutLiveSessionDemandResponseDto> GetLiveSessionDemandAsync(string identifier);
     Task BindAsync(Guid id);
     Task UnbindAsync(Guid id);
 }
@@ -24,11 +25,14 @@ public class CageOutIdService(
     ICageOutUnitRepository unitRepository,
     ICageClusterStatusNotifier clusterStatusNotifier,
     ICageOutLiveSessionStore liveSessionStore,
+    ICageOutLiveSessionDemandStore liveSessionDemandStore,
     ICageOutLiveSessionNotifier liveSessionNotifier,
     IMapper mapper) : ICageOutIdService
 {
     private static readonly TimeSpan OnlineThreshold = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan LiveSessionStalenessThreshold = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan LiveSessionStalenessThreshold = TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan HttpViewerLeaseTtl = TimeSpan.FromSeconds(12);
+    private static readonly TimeSpan HeartbeatPersistenceInterval = TimeSpan.FromSeconds(5);
 
     public async Task<CageOutIdResponseDto> CreateAsync(CageOutIdDto dto)
     {
@@ -73,6 +77,7 @@ public class CageOutIdService(
     {
         var entity = await repository.GetByIdAsync(id);
         var now = DateTime.Now;
+        liveSessionDemandStore.TouchHttpViewer(id, DateTime.UtcNow, HttpViewerLeaseTtl);
         var isOnline = entity.LastSeenAt.HasValue && entity.LastSeenAt.Value >= now.Subtract(OnlineThreshold);
 
         var snapshot = liveSessionStore.Get(id, LiveSessionStalenessThreshold, now);
@@ -91,15 +96,32 @@ public class CageOutIdService(
         return snapshot;
     }
 
+    public async Task<CageOutLiveSessionDemandResponseDto> GetLiveSessionDemandAsync(string identifier)
+    {
+        var entity = await repository.FirstOrDefaultAsync(x => x.Identifier == identifier)
+            ?? throw new NotFoundException("Cage ID");
+
+        var activeViewerCount = liveSessionDemandStore.GetActiveViewerCount(entity.Id, DateTime.UtcNow);
+        return new CageOutLiveSessionDemandResponseDto
+        {
+            CageOutId = entity.Id,
+            Identifier = entity.Identifier,
+            ActiveViewerCount = activeViewerCount,
+            ShouldPublishLiveSession = activeViewerCount > 0,
+        };
+    }
+
     public async Task HeartbeatAsync(string identifier, CageOutIdHeartbeatDto? heartbeatDto = null)
     {
         var entity = await repository.FirstOrDefaultAsync(x => x.Identifier == identifier)
             ?? throw new NotFoundException("Cage ID");
         var now = DateTime.Now;
+        var previousLastSeen = entity.LastSeenAt;
         // Mesma convenção de CreatedAt/UpdatedAt (hora local do servidor), não UTC —
         // evita desalinhamento de 3h ao comparar com "agora" no front (América/São Paulo).
         entity.LastSeenAt = now;
 
+        var hasOperationalStatusUpdate = false;
         if (heartbeatDto?.OperationalStatus is not null)
         {
             entity.OperationalStatus = heartbeatDto.OperationalStatus.Value;
@@ -107,6 +129,7 @@ public class CageOutIdService(
                 ? null
                 : heartbeatDto.CurrentMode.Trim();
             entity.StatusUpdatedAt = now;
+            hasOperationalStatusUpdate = true;
         }
 
         CageOutLiveSessionResponseDto? liveSessionSnapshot = null;
@@ -115,9 +138,16 @@ public class CageOutIdService(
             liveSessionSnapshot = liveSessionStore.Upsert(entity, heartbeatDto.LiveSession, now, isOnline: true);
         }
 
-        await repository.UpdateAsync(entity);
+        var shouldPersistHeartbeat = hasOperationalStatusUpdate
+            || previousLastSeen is null
+            || now - previousLastSeen.Value >= HeartbeatPersistenceInterval;
 
-        if (entity.CageClusterId.HasValue)
+        if (shouldPersistHeartbeat)
+        {
+            await repository.UpdateAsync(entity);
+        }
+
+        if (shouldPersistHeartbeat && entity.CageClusterId.HasValue)
         {
             await clusterStatusNotifier.NotifyClusterStatusChangedAsync(entity.CageClusterId.Value);
         }

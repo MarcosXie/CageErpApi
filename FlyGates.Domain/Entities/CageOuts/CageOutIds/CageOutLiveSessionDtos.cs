@@ -66,3 +66,11 @@ public sealed class CageOutLiveSessionItemResponseDto
     public decimal? UnitPrice { get; set; }
     public DateTimeOffset ScannedAt { get; set; }
 }
+
+public sealed class CageOutLiveSessionDemandResponseDto
+{
+    public required Guid CageOutId { get; set; }
+    public required string Identifier { get; set; }
+    public bool ShouldPublishLiveSession { get; set; }
+    public int ActiveViewerCount { get; set; }
+}
