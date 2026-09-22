@@ -25,6 +25,8 @@ public static class DependencyInjection
         services.AddSingleton<ICageClusterStatusNotifier, NoOpCageClusterStatusNotifier>();
         services.AddScoped<ICageOutUnitService, CageOutUnitService>();
         services.AddScoped<ICageOutIdService, CageOutIdService>();
+        services.AddSingleton<ICageOutLiveSessionStore, InMemoryCageOutLiveSessionStore>();
+        services.AddSingleton<ICageOutLiveSessionNotifier, NoOpCageOutLiveSessionNotifier>();
         services.AddScoped<ICageOutEmployeeService, CageOutEmployeeService>();
         services.AddScoped<ICageOutRejectService, CageOutRejectService>();
         services.AddScoped<ICageOutTransactionService, CageOutTransactionService>();

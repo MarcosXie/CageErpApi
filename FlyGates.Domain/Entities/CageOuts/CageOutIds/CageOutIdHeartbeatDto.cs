@@ -4,4 +4,5 @@ public class CageOutIdHeartbeatDto
 {
     public CageOutOperationalStatus? OperationalStatus { get; set; }
     public string? CurrentMode { get; set; }
+    public CageOutLiveSessionHeartbeatDto? LiveSession { get; set; }
 }

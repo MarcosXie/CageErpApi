@@ -14,6 +14,7 @@ public interface ICageOutIdService
     Task<CageOutIdResponseDto> GetByIdAsync(Guid id);
     Task<List<CageOutIdResponseDto>> GetAllAsync();
     Task HeartbeatAsync(string identifier, CageOutIdHeartbeatDto? heartbeatDto = null);
+    Task<CageOutLiveSessionResponseDto> GetLiveSessionAsync(Guid id);
     Task BindAsync(Guid id);
     Task UnbindAsync(Guid id);
 }
@@ -22,8 +23,13 @@ public class CageOutIdService(
     ICageOutIdRepository repository,
     ICageOutUnitRepository unitRepository,
     ICageClusterStatusNotifier clusterStatusNotifier,
+    ICageOutLiveSessionStore liveSessionStore,
+    ICageOutLiveSessionNotifier liveSessionNotifier,
     IMapper mapper) : ICageOutIdService
 {
+    private static readonly TimeSpan OnlineThreshold = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan LiveSessionStalenessThreshold = TimeSpan.FromSeconds(10);
+
     public async Task<CageOutIdResponseDto> CreateAsync(CageOutIdDto dto)
     {
         await ValidateAsync(dto);
@@ -63,13 +69,36 @@ public class CageOutIdService(
     public async Task<List<CageOutIdResponseDto>> GetAllAsync() =>
         mapper.Map<List<CageOutIdResponseDto>>(await repository.GetAsync());
 
+    public async Task<CageOutLiveSessionResponseDto> GetLiveSessionAsync(Guid id)
+    {
+        var entity = await repository.GetByIdAsync(id);
+        var now = DateTime.Now;
+        var isOnline = entity.LastSeenAt.HasValue && entity.LastSeenAt.Value >= now.Subtract(OnlineThreshold);
+
+        var snapshot = liveSessionStore.Get(id, LiveSessionStalenessThreshold, now);
+        if (snapshot is null)
+        {
+            return BuildFallbackSnapshot(entity, now, isOnline);
+        }
+
+        snapshot.CageOutId = entity.Id;
+        snapshot.UnitId = entity.UnitId;
+        snapshot.Identifier = entity.Identifier;
+        snapshot.IsOnline = isOnline;
+        snapshot.OperationalStatus = entity.OperationalStatus;
+        snapshot.CurrentMode = entity.CurrentMode;
+        snapshot.LastSeenAt = entity.LastSeenAt;
+        return snapshot;
+    }
+
     public async Task HeartbeatAsync(string identifier, CageOutIdHeartbeatDto? heartbeatDto = null)
     {
         var entity = await repository.FirstOrDefaultAsync(x => x.Identifier == identifier)
             ?? throw new NotFoundException("Cage ID");
+        var now = DateTime.Now;
         // Mesma convenção de CreatedAt/UpdatedAt (hora local do servidor), não UTC —
         // evita desalinhamento de 3h ao comparar com "agora" no front (América/São Paulo).
-        entity.LastSeenAt = DateTime.Now;
+        entity.LastSeenAt = now;
 
         if (heartbeatDto?.OperationalStatus is not null)
         {
@@ -77,7 +106,13 @@ public class CageOutIdService(
             entity.CurrentMode = string.IsNullOrWhiteSpace(heartbeatDto.CurrentMode)
                 ? null
                 : heartbeatDto.CurrentMode.Trim();
-            entity.StatusUpdatedAt = DateTime.Now;
+            entity.StatusUpdatedAt = now;
+        }
+
+        CageOutLiveSessionResponseDto? liveSessionSnapshot = null;
+        if (heartbeatDto?.LiveSession is not null)
+        {
+            liveSessionSnapshot = liveSessionStore.Upsert(entity, heartbeatDto.LiveSession, now, isOnline: true);
         }
 
         await repository.UpdateAsync(entity);
@@ -85,6 +120,11 @@ public class CageOutIdService(
         if (entity.CageClusterId.HasValue)
         {
             await clusterStatusNotifier.NotifyClusterStatusChangedAsync(entity.CageClusterId.Value);
+        }
+
+        if (liveSessionSnapshot is not null)
+        {
+            await liveSessionNotifier.NotifySessionUpdatedAsync(liveSessionSnapshot);
         }
     }
 
@@ -108,5 +148,25 @@ public class CageOutIdService(
     private async Task ValidateAsync(CageOutIdDto dto)
     {
         _ = await unitRepository.GetByIdAsync(dto.UnitId);
+    }
+
+    private static CageOutLiveSessionResponseDto BuildFallbackSnapshot(CageOutId entity, DateTime now, bool isOnline)
+    {
+        return new CageOutLiveSessionResponseDto
+        {
+            CageOutId = entity.Id,
+            UnitId = entity.UnitId,
+            Identifier = entity.Identifier,
+            IsOnline = isOnline,
+            OperationalStatus = entity.OperationalStatus,
+            CurrentMode = entity.CurrentMode,
+            LastSeenAt = entity.LastSeenAt,
+            GeneratedAt = now,
+            Session = new CageOutLiveSessionPayloadResponseDto
+            {
+                IsActive = false,
+                Items = [],
+            },
+        };
     }
 }

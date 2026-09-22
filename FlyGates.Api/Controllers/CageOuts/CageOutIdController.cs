@@ -14,6 +14,9 @@ public class CageOutIdController(ICageOutIdService service) : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id) => Ok(await service.GetByIdAsync(id));
 
+    [HttpGet("{id:guid}/live-session")]
+    public async Task<IActionResult> GetLiveSession(Guid id) => Ok(await service.GetLiveSessionAsync(id));
+
     [HttpPost]
     public async Task<IActionResult> Create(CageOutIdDto request)
     {

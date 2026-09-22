@@ -257,11 +257,42 @@ Body opcional (application/json):
 ```json
 {
   "operationalStatus": 1,
-  "currentMode": "Normal"
+  "currentMode": "Normal",
+  "liveSession": {
+    "isActive": true,
+    "checkoutId": "CageId_004",
+    "currentTotalAmount": 18.9,
+    "scannedCount": 2,
+    "approvedCount": 1,
+    "sessionStartedAt": "2026-09-22T16:10:22.123Z",
+    "lastUpdatedAt": "2026-09-22T16:10:24.311Z",
+    "photoSnapshotBase64": "...base64-jpeg...",
+    "videoSnapshotBase64": "...base64-jpeg...",
+    "items": [
+      {
+        "itemId": "f0b7fe95-c9cb-4a1d-9b5f-5753028db65a",
+        "productCode": "124535012",
+        "productName": "Coca",
+        "quantity": 1,
+        "matchStatus": "Match",
+        "expectedWeightKg": 0.350,
+        "realWeightKg": 0.352,
+        "unitPrice": 8.90,
+        "scannedAt": "2026-09-22T16:10:23.988Z"
+      }
+    ]
+  }
 }
 ```
 
 Se enviado sem body, atualiza somente `lastSeenAt`.
+
+### Sessao ao vivo por Cage ID
+- GET /api/CageOutId/{id}/live-session
+
+Retorna o snapshot mais recente da sessao de compra em andamento para o CageOut,
+incluindo itens, total atual e snapshots (foto/video). Quando nao houver sessao
+ativa recente, `session.isActive` vem `false` e `items` vazio.
 
 ## CageClusters (CageCluster)
 
@@ -336,6 +367,7 @@ Cada item de `cages` inclui:
 
 Hub:
 - /hubs/cagecluster
+- /hubs/cageouts/live-session
 
 Metodos cliente -> servidor:
 - `SubscribeCluster(Guid clusterId)`
@@ -343,6 +375,13 @@ Metodos cliente -> servidor:
 
 Evento servidor -> cliente:
 - `ClusterStatusUpdated(CageClusterStatusSnapshotDto snapshot)`
+
+Hub live-session (cliente -> servidor):
+- `SubscribeCageOut(Guid cageOutId)`
+- `UnsubscribeCageOut(Guid cageOutId)`
+
+Hub live-session (servidor -> cliente):
+- `SessionUpdated(CageOutLiveSessionResponseDto snapshot)`
 
 No telão, ordene por `boxNumber` e priorize o menor numero livre.
 

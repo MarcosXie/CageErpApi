@@ -1,5 +1,6 @@
 using FlyGates.Application.Extensions;
 using FlyGates.Application.Services.CageOuts.CageClusters;
+using FlyGates.Application.Services.CageOuts.CageOutIds;
 using FlyGates.Api.Hubs;
 using FlyGates.Infraestructure.Extensions;
 using FlyGates.Middlewares;
@@ -43,6 +44,7 @@ services.AddSwaggerGen(c =>
 services.AddHttpContextAccessor();
 services.AddApplication();
 services.AddSingleton<ICageClusterStatusNotifier, CageClusterStatusNotifier>();
+services.AddSingleton<ICageOutLiveSessionNotifier, CageOutLiveSessionNotifier>();
 services.AddRepository(config);
 services.AddInfrastructure(config);
 services.AddHttpClient();
@@ -61,6 +63,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<CageClusterMonitorHub>("/hubs/cagecluster");
+app.MapHub<CageOutLiveSessionHub>("/hubs/cageouts/live-session");
 app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
