@@ -170,6 +170,27 @@ Response 200:
 
 Credenciais invalidas retornam 404.
 
+### 8) Atualizar digital do funcionario
+Metodo:
+- PATCH /api/CageOutEmployee/{id}/fingerprint
+
+Path params:
+- id (Guid)
+
+Request body (application/json):
+```json
+{
+  "fingerprintData": "template-textFIR-retornado-pelo-sdk-do-leitor"
+}
+```
+
+Notas:
+- `fingerprintData` e o valor de `TextFIR` retornado pelo SDK do leitor (Nitgen eNBioBSP) apos o Enroll. Enviar string vazia remove a digital cadastrada.
+- Nao altera nenhum outro campo do funcionario (nome, cracha, senha, permissoes).
+
+Response 204:
+- Sem body
+
 ## Clientes (CageOutClient)
 
 Rota base:

@@ -7,6 +7,7 @@ public interface ICageOutEmployeeService
     Task DeleteAsync(Guid id);
     Task<CageOutEmployeeResponseDto> GetByIdAsync(Guid id);
     Task<List<CageOutEmployeeResponseDto>> GetAllAsync();
+    Task UpdateFingerprintAsync(Guid id, string fingerprintData);
     Task<bool> IsValidBadgeAsync(string badgeCode);
     Task<CageOutEmployeeAuthResultDto?> AuthenticateAsync(CageOutEmployeeAuthDto request);
 }

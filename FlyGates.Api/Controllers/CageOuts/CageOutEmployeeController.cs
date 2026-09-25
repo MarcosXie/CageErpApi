@@ -51,6 +51,15 @@ public class CageOutEmployeeController(ICageOutEmployeeService service) : Contro
         return NoContent();
     }
 
+    [HttpPatch("{id:guid}/fingerprint")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateFingerprint([FromRoute] Guid id, [FromBody] CageOutEmployeeFingerprintDto request)
+    {
+        await service.UpdateFingerprintAsync(id, request.FingerprintData);
+        return NoContent();
+    }
+
     [HttpPost("validate-badge")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     public async Task<IActionResult> ValidateBadge([FromBody] CageOutEmployeeBadgeValidationDto request)

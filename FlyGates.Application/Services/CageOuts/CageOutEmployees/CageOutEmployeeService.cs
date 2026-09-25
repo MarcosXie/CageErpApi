@@ -37,6 +37,13 @@ public class CageOutEmployeeService(ICageOutEmployeeRepository repository, IMapp
         await repository.DeleteAsync(id);
     }
 
+    public async Task UpdateFingerprintAsync(Guid id, string fingerprintData)
+    {
+        var dbEmployee = await repository.GetByIdAsync(id);
+        dbEmployee.FingerprintData = fingerprintData;
+        await repository.UpdateAsync(dbEmployee);
+    }
+
     public async Task<CageOutEmployeeResponseDto> GetByIdAsync(Guid id)
     {
         var entity = await repository.GetByIdAsync(id);
