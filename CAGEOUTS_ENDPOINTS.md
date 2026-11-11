@@ -505,6 +505,51 @@ Response 200 (application/json):
   "videoRetentionDays": 7
 }
 
+## Instaladores / SDKs (Sdk)
+
+Rota base:
+- /api/Sdk
+
+Lista e disponibiliza para download os instaladores Windows (CageOuts e CageCluster) publicados no S3. A fonte e o manifesto `sdks/manifest.json` no bucket configurado em `AwsS3:BucketName`, mantido pelo script `_deploy-local-CageErp/publish-sdk.ps1` (os `.exe` ficam em `sdks/<app>/<arquivo>`). Consumido pela tela "SDKs" do CageErpUI.
+
+### 1) Listar aplicativos e versoes
+Metodo:
+- GET /api/Sdk
+
+Response 200 (application/json) — sempre inclui CageOuts e CageCluster, versoes em ordem decrescente:
+[
+  {
+    "app": "CageOuts",
+    "latestVersion": "1.0.1",
+    "releases": [
+      {
+        "app": "CageOuts",
+        "version": "1.0.1",
+        "fileName": "CageOuts-Setup-1.0.1.exe",
+        "sizeBytes": 74447187,
+        "sha256": "2ded81de...",
+        "releaseDate": "2026-11-11T10:29:30.1722174+00:00"
+      }
+    ]
+  },
+  { "app": "CageCluster", "latestVersion": null, "releases": [] }
+]
+
+Erros: 503 se o bucket estiver inacessivel ou o manifesto for invalido.
+
+### 2) Gerar link de download
+Metodo:
+- GET /api/Sdk/{app}/{version}/download
+
+Response 200 (application/json) — URL pre-assinada do S3 valida por 15 minutos, com `Content-Disposition: attachment`:
+{
+  "url": "https://cageouts-media-prod.s3.amazonaws.com/sdks/cageouts/CageOuts-Setup-1.0.1.exe?X-Amz-...",
+  "fileName": "CageOuts-Setup-1.0.1.exe",
+  "expiresAt": "2026-11-11T11:15:00+00:00"
+}
+
+Erros: 404 se a versao nao estiver no manifesto; 503 se nao for possivel gerar a URL.
+
 
 ## Vendas (CageOutTransaction)
 

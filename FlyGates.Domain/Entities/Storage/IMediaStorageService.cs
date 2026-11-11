@@ -6,6 +6,12 @@ public interface IMediaStorageService
     /// <summary>Gera uma URL temporária de leitura para a chave informada; retorna null se a chave for vazia.</summary>
     string? GeneratePresignedUrl(string? objectKey);
 
+    /// <summary>Gera uma URL temporária de download que força o navegador a salvar com o nome de arquivo informado.</summary>
+    string? GeneratePresignedDownloadUrl(string objectKey, string fileName, TimeSpan expiration);
+
+    /// <summary>Lê o objeto como texto UTF-8; retorna null se a chave não existir no bucket.</summary>
+    Task<string?> ReadObjectTextAsync(string objectKey, CancellationToken cancellationToken = default);
+
     /// <summary>Remove o objeto do bucket; não falha se a chave for vazia ou o objeto não existir.</summary>
     Task DeleteObjectAsync(string? objectKey, CancellationToken cancellationToken = default);
 

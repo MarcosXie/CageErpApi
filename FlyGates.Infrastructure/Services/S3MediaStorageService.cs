@@ -1,6 +1,7 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using FlyGates.Application.Entities.Storage;
+using FlyGates.Application.Exceptions;
 using FlyGates.Infraestructure.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -34,6 +35,49 @@ public class S3MediaStorageService(
         {
             logger.LogWarning(ex, "Falha ao gerar URL pré-assinada para a chave {Key}.", objectKey);
             return null;
+        }
+    }
+
+    public string? GeneratePresignedDownloadUrl(string objectKey, string fileName, TimeSpan expiration)
+    {
+        var current = options.CurrentValue;
+        try
+        {
+            var request = new GetPreSignedUrlRequest
+            {
+                BucketName = current.BucketName,
+                Key = objectKey,
+                Verb = HttpVerb.GET,
+                Expires = DateTime.UtcNow.Add(expiration),
+            };
+            request.ResponseHeaderOverrides.ContentDisposition = $"attachment; filename=\"{fileName.Replace("\"", string.Empty)}\"";
+            request.ResponseHeaderOverrides.ContentType = "application/octet-stream";
+            return s3Client.GetPreSignedURL(request);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Falha ao gerar URL de download para a chave {Key}.", objectKey);
+            return null;
+        }
+    }
+
+    public async Task<string?> ReadObjectTextAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        var current = options.CurrentValue;
+        try
+        {
+            using var response = await s3Client.GetObjectAsync(current.BucketName, objectKey, cancellationToken).ConfigureAwait(false);
+            using var reader = new StreamReader(response.ResponseStream, System.Text.Encoding.UTF8);
+            return await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Falha ao ler a chave {Key} do bucket S3.", objectKey);
+            throw new BaseException("Armazenamento de arquivos indisponível no momento.", 503);
         }
     }
 

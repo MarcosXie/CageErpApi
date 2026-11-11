@@ -12,6 +12,7 @@ using FlyGates.Application.Services.CageOuts.CageOutIds;
 using FlyGates.Application.Services.CageOuts.CageOutRejects;
 using FlyGates.Application.Services.CageOuts.CageOutTransactions;
 using FlyGates.Application.Services.CageOuts.CageOutUnits;
+using FlyGates.Application.Services.Sdks;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FlyGates.Application.Extensions;
@@ -31,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<ICageOutEmployeeService, CageOutEmployeeService>();
         services.AddScoped<ICageOutRejectService, CageOutRejectService>();
         services.AddScoped<ICageOutTransactionService, CageOutTransactionService>();
+        services.AddScoped<ISdkReleaseService, SdkReleaseService>();
     }
 }
 
