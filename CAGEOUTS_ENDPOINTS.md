@@ -510,7 +510,7 @@ Response 200 (application/json):
 Rota base:
 - /api/Sdk
 
-Lista e disponibiliza para download os instaladores Windows (CageOuts e CageCluster) publicados no S3. A fonte e o manifesto `sdks/manifest.json` no bucket configurado em `AwsS3:BucketName`, mantido pelo script `_deploy-local-CageErp/publish-sdk.ps1` (os `.exe` ficam em `sdks/<app>/<arquivo>`). Consumido pela tela "SDKs" do CageErpUI.
+Lista e disponibiliza para download os instaladores Windows (CageOuts e CageCluster) publicados no S3. A fonte e o manifesto `sdks/manifest.json` no bucket configurado em `AwsS3:BucketName`, mantido pelo script `_deploy-local-CageErp/publish-sdk.ps1` (os `.exe` ficam em `sdks/<app>/<arquivo>`). Consumido pela tela "Instaladores" do CageErpUI.
 
 ### 1) Listar aplicativos e versoes
 Metodo:
