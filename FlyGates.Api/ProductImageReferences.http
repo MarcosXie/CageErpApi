@@ -2,6 +2,25 @@
 @sku = 7891234567890
 @fileName = 7891234567890.foreground.png
 @productImagesKey = {{$processEnv CAGE_PRODUCT_IMAGES_TEST_KEY}}
+@assortmentKey = {{$processEnv CAGE_PRODUCT_ASSORTMENT_TEST_KEY}}
+@store = 17
+
+### Import the complete assortment for a test store (204)
+PUT {{baseUrl}}/api/cageouts/product-image-assortments/{{store}}
+X-Product-Images-Key: {{productImagesKey}}
+X-Product-Assortment-Key: {{assortmentKey}}
+Content-Type: application/json
+
+{"skus":["07891234567890","7891234567890"]}
+
+### List the first page; use nextAfter on subsequent polls
+GET {{baseUrl}}/api/cageouts/product-image-assortments/{{store}}/references?after=0&limit=250
+X-Product-Images-Key: {{productImagesKey}}
+
+### One-time legacy backfill (only use against the intended staging catalog)
+POST {{baseUrl}}/api/cageouts/product-image-assortments/backfill
+X-Product-Images-Key: {{productImagesKey}}
+X-Product-Assortment-Key: {{assortmentKey}}
 
 ### Get the full shared snapshot, including permanent tombstones
 GET {{baseUrl}}/api/cageouts/product-image-references

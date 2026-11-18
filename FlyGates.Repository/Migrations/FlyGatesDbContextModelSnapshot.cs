@@ -465,6 +465,98 @@ namespace FlyGates.Repository.Migrations
                     b.ToTable("cage_out_unit", (string)null);
                 });
 
+            modelBuilder.Entity("FlyGates.Repository.Repositories.CageOuts.AssortmentSku", b =>
+                {
+                    b.Property<int>("Store")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Sku")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("ascii_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("Sku"), "ascii");
+
+                    b.HasKey("Store", "Sku");
+
+                    b.ToTable("ProductImageAssortmentSkus", (string)null);
+                });
+
+            modelBuilder.Entity("FlyGates.Repository.Repositories.CageOuts.CatalogReference", b =>
+                {
+                    b.Property<string>("Sku")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("ascii_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("Sku"), "ascii");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)")
+                        .UseCollation("ascii_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("FileName"), "ascii");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<long>("Length")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ModifiedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("Revision")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Sku", "FileName");
+
+                    b.HasIndex("Revision")
+                        .IsUnique();
+
+                    b.ToTable("ProductImageCatalog", (string)null);
+                });
+
+            modelBuilder.Entity("FlyGates.Repository.Repositories.CageOuts.ReferenceAssortment", b =>
+                {
+                    b.Property<int>("Store")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Store"));
+
+                    b.Property<Guid>("Generation")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Store");
+
+                    b.ToTable("ProductImageAssortments", (string)null);
+                });
+
+            modelBuilder.Entity("FlyGates.Repository.Repositories.CageOuts.ReferenceRevision", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<long>("Value")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductImageRevisions", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Value = 0L
+                        });
+                });
+
             modelBuilder.Entity("FlyGates.Application.Dao.CageOutTransactionItemDao", b =>
                 {
                     b.HasOne("FlyGates.Application.Dao.CageOutTransactionDao", "Transaction")

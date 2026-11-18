@@ -5,7 +5,8 @@ using FlyGates.Application.Exceptions;
 namespace FlyGates.Application.Services.ProductImageReferences;
 
 public sealed class ProductImageReferenceService(
-    IProductImageReferenceStorage storage) : IProductImageReferenceService
+    IProductImageReferenceStorage storage,
+    IProductImageCatalog? catalog = null) : IProductImageReferenceService
 {
     public const int MaximumUploadBytes = 10 * 1024 * 1024;
     private const string ReservedSku = ".shared-sync";
@@ -90,6 +91,7 @@ public sealed class ProductImageReferenceService(
         {
             EnsureSameContent(existing.Content, content);
             await ThrowIfDeletedAsync(sku, fileName, cancellationToken).ConfigureAwait(false);
+            await RecordAsync(ToResponse(sku, fileName, existing), cancellationToken);
             return (ToResponse(sku, fileName, existing), false);
         }
 
@@ -99,9 +101,9 @@ public sealed class ProductImageReferenceService(
                     sku, fileName, content, expectedContentType, cancellationToken).ConfigureAwait(false))
             {
                 await ThrowIfDeletedAsync(sku, fileName, cancellationToken).ConfigureAwait(false);
-                return (
-                    new ProductImageReferenceResponse(sku, fileName, false, content.LongLength, DateTimeOffset.UtcNow),
-                    true);
+                var reference = new ProductImageReferenceResponse(sku, fileName, false, content.LongLength, DateTimeOffset.UtcNow);
+                await RecordAsync(reference, cancellationToken);
+                return (reference, true);
             }
 
             existing = await storage.GetImageAsync(sku, fileName, cancellationToken).ConfigureAwait(false);
@@ -109,6 +111,7 @@ public sealed class ProductImageReferenceService(
             {
                 EnsureSameContent(existing.Content, content);
                 await ThrowIfDeletedAsync(sku, fileName, cancellationToken).ConfigureAwait(false);
+                await RecordAsync(ToResponse(sku, fileName, existing), cancellationToken);
                 return (ToResponse(sku, fileName, existing), false);
             }
         }
@@ -120,8 +123,15 @@ public sealed class ProductImageReferenceService(
     {
         ValidateIdentity(sku, fileName);
         await storage.CreateTombstoneIfAbsentAsync(sku, fileName, cancellationToken).ConfigureAwait(false);
+        await RecordAsync(new ProductImageReferenceResponse(sku, fileName, true, 0, DateTimeOffset.UtcNow), cancellationToken);
         await storage.DeleteImageAsync(sku, fileName, cancellationToken).ConfigureAwait(false);
     }
+
+    private Task RecordAsync(ProductImageReferenceResponse reference, CancellationToken ct) =>
+        catalog?.RecordAsync(reference.Sku, reference.FileName, reference.Deleted, reference.Length,
+            reference.LastModifiedUtc, ct) ?? Task.CompletedTask;
+
+    public static bool IsValidSku(string sku) => IsValidName(sku, 128) && !IsReservedSku(sku);
 
     private async Task ThrowIfDeletedAsync(string sku, string fileName, CancellationToken cancellationToken)
     {

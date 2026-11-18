@@ -2,6 +2,7 @@ using FlyGates.Application.Dao;
 using FlyGates.Domain.Dao;
 using FlyGates.Repository.Configuration;
 using FlyGates.Repository.Configuration.CageOuts;
+using FlyGates.Repository.Repositories.CageOuts;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlyGates.Repository.Context;
@@ -32,6 +33,7 @@ public class FlyGatesDbContext(DbContextOptions<FlyGatesDbContext> options) : Db
         modelBuilder.ApplyConfiguration(new CageOutRejectConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutTransactionConfiguration());
         modelBuilder.ApplyConfiguration(new CageOutTransactionItemConfiguration());
+        ProductImageCatalog.Configure(modelBuilder);
         
         base.OnModelCreating(modelBuilder);
     }

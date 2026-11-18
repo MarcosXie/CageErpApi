@@ -747,3 +747,29 @@ Colunas principais:
 - cage_out_reject: ProductCode, ProductName, Schedule, CheckoutId, ExpectedWeight, RealWeight, ProductImage, ProductVideo, Reason, CreatedAt, UpdatedAt
 - transactions: ClientTransactionId (unico), CheckoutId, CompletedAt, TotalAmount, ItemCount, CreatedAt, UpdatedAt
 - transaction_items: TransactionId, ProductCode, ProductName, Quantity, UnitPrice, Subtotal
+# Sortimento de referências por loja
+
+Os endpoints abaixo exigem `X-Product-Images-Key`. Para operações administrativas,
+também é exigido `X-Product-Assortment-Key`, configurado no servidor como
+`AwsS3__ProductImageAssortmentAdminKey`. Use HTTPS.
+
+- `PUT /api/cageouts/product-image-assortments/{loja}`: substitui atomicamente
+  o sortimento da loja. Corpo: `{"skus":["07891000100103","7891234567895"]}`.
+  Até 100 mil SKUs por importação, como strings para preservar zeros à esquerda.
+  Lista vazia remove todos os SKUs da loja. Retorna `204`.
+- `GET /api/cageouts/product-image-assortments/{loja}/references?after=0&limit=250`:
+  retorna `{generation,items,hasMore,nextAfter}`. Cada item contém `revision`,
+  `sku`, `fileName`, `deleted`, `length` e `lastModifiedUtc`. Use `nextAfter` na
+  próxima chamada; quando `generation` mudar, reinicie com `after=0`. Lojas
+  sem sortimento retornam `404`. O limite permitido é 1 a 1000.
+- `POST /api/cageouts/product-image-assortments/backfill`: indexa no MySQL as
+  referências e exclusões existentes no S3 antes da ativação do novo sincronizador.
+  É idempotente, mas usa a listagem completa legada: use para migração de bases
+  pequenas, não no polling nem como carga inicial de uma base já massiva.
+  A migração precisa terminar com `204` antes de ativar os caixas.
+
+Uploads e exclusões continuam nas rotas de referências existentes. Novas
+alterações recebem revisões no MySQL; imagens permanecem no S3. A listagem
+completa anterior continua disponível para clientes legados, mas não é usada no
+modo por sortimento. Aplique a migration `AddProductImageAssortments` antes de
+publicar a API.
