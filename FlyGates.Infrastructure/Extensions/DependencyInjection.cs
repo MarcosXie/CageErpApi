@@ -2,6 +2,7 @@ using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using FlyGates.Application.Entities.Storage;
+using FlyGates.Infraestructure.Services.ProductImageReferences;
 using FlyGates.Infraestructure.Configuration;
 using FlyGates.Infraestructure.Services;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         });
 
         services.AddSingleton<IMediaStorageService, S3MediaStorageService>();
+        services.AddSingleton<IProductImageReferenceStorage, S3ProductImageReferenceStorage>();
         services.AddHostedService<S3LifecycleSyncHostedService>();
     }
 }

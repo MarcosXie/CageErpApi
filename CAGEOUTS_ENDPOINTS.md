@@ -2,6 +2,105 @@
 
 Este documento descreve os endpoints do modulo CageOuts implementado no FlyGates.Api.
 
+## Imagens de referencia compartilhadas de produtos
+
+Rota base:
+- `/api/cageouts/product-image-references`
+
+As imagens sao armazenadas no bucket S3 configurado em `AwsS3:BucketName`, sob o
+prefixo isolado `AwsS3:ProductImageReferencePrefix` (padrao
+`product-image-references/`). Objetos de imagem ficam em
+`images/{sku}/{fileName}`; marcadores permanentes de exclusao ficam em
+`tombstones/{sku}/{fileName}`. A criacao usa escrita condicional para impedir
+que um objeto existente seja sobrescrito. Marcadores nunca sao removidos e
+prevalecem sobre qualquer imagem orfa; assim, exclusoes sincronizadas chegam a
+todos os checkouts que consultam o snapshot.
+
+Validacao de identidade: SKU ate 128 caracteres e nome de arquivo ate 180,
+somente ASCII letras/numeros, `_`, `-` e `.`; nao aceita `.`/`..`, ponto final,
+separadores ou o SKU reservado `.shared-sync`. Upload aceita apenas `.foreground.png`
+com `image/png` e assinatura PNG ou `.jpg` com `image/jpeg` e assinatura JPEG,
+ate 10 MiB. JPGs legados podem ser enviados com o nome original; a API apenas
+armazena a referencia, nao os classifica como dados de reconhecimento.
+
+### Listar snapshot completo
+- `GET /api/cageouts/product-image-references`
+
+Response 200 (`application/json`), array contendo imagens ativas e tombstones:
+
+```json
+[
+  {
+    "sku": "7891234567890",
+    "fileName": "7891234567890.foreground.png",
+    "deleted": false,
+    "length": 18342,
+    "lastModifiedUtc": "2026-11-17T11:13:00+00:00"
+  },
+  {
+    "sku": "7891234567890",
+    "fileName": "legacy-photo.jpg",
+    "deleted": true,
+    "length": 0,
+    "lastModifiedUtc": "2026-11-17T11:14:00+00:00"
+  }
+]
+```
+
+O snapshot percorre todas as paginas do S3. Falhas no bucket retornam 503; a API
+nao trata indisponibilidade como snapshot vazio.
+
+### Baixar imagem
+- `GET /api/cageouts/product-image-references/{sku}/{fileName}`
+- Retorna bytes com `image/png` ou `image/jpeg`.
+- 404 se inexistente; 410 se removida; 400 para identidade invalida.
+
+### Enviar imagem
+- `PUT /api/cageouts/product-image-references/{sku}/{fileName}`
+- Corpo HTTP: bytes puros do arquivo (nao JSON nem multipart); `Content-Type`
+  deve corresponder a extensao e assinatura.
+- Retorna 201 para criacao, com `Location` apontando para o GET da imagem; 200
+  quando o mesmo nome ja contem exatamente os mesmos bytes; 409 se o nome ja
+  estiver associado a bytes diferentes; 410 se houver tombstone; 413 acima de
+  10 MiB; 415 para tipo nao aceito.
+- Nomes sao imutaveis. Para manter duas imagens locais com o mesmo nome, o
+  cliente deve enviar uma delas com outro nome (por exemplo, um GUID).
+
+### Excluir imagem globalmente
+- `DELETE /api/cageouts/product-image-references/{sku}/{fileName}`
+- Retorna 204 e e idempotente. Primeiro grava o tombstone permanente e depois
+  remove o objeto de imagem; se a remocao falhar, o tombstone continua
+  prevalecendo e uma nova tentativa pode concluir a limpeza.
+- Clientes devem manter exclusoes offline em fila duravel e nunca apagar
+  tombstones do servidor.
+
+Timeout de cada operacao S3: 30 segundos. **Estas quatro rotas exigem
+`X-Product-Images-Key` em todas as requisicoes**, inclusive GET. Configure o
+segredo compartilhado na secao `AwsS3`, chave `ProductImageReferenceApiKey`,
+preferencialmente pela variavel de ambiente
+`AwsS3__ProductImageReferenceApiKey`. Nao grave o segredo no repositorio nem em
+logs. Use uma chave aleatoria forte e configure o mesmo valor no cliente WPF
+em `ProductImageSharing:ApiKey`. **HTTPS e obrigatorio em ambiente de
+implantacao**, terminado na API ou proxy confiavel; o header contem um segredo
+de acesso e nao pode trafegar em HTTP publico. Nunca registre esse header no
+proxy/telemetria. HTTP somente nos testes locais de loopback.
+
+Sem chave configurada no servidor (ou contendo somente espacos), as rotas
+falham fechadas com 503 `application/problem+json`. Header ausente, duplicado
+ou incorreto retorna 401 `application/problem+json`. A comparacao usa hashes
+SHA-256 de tamanho fixo e comparacao em tempo constante; a chave nao e
+retornada nem registrada. Esta protecao e exclusiva das rotas de referencias:
+a autenticacao/autorizacao dos endpoints existentes nao foi alterada.
+
+Permissoes IAM minimas para o principal da API:
+- `s3:ListBucket` no bucket, limitado por `s3:prefix` a
+  `product-image-references/*` (ou ao prefixo configurado).
+- `s3:GetObject`, `s3:PutObject` e `s3:DeleteObject` em
+  `arn:aws:s3:::<bucket>/<prefixo-configurado>*`.
+
+Nao e necessario banco/migration. Nenhuma lifecycle rule e criada para este
+prefixo; a regra existente continua limitada ao prefixo de videos.
+
 Base URL:
 - https://api.cageouts.com.br
 - Em ambiente local: https://localhost:<porta>
