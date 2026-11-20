@@ -1,0 +1,30 @@
+@baseUrl = http://localhost:5000
+# Replace with the ID returned by Create room.
+@roomId = 00000000-0000-0000-0000-000000000000
+
+### Create room (201, Location header)
+POST {{baseUrl}}/api/halloween/sessions
+
+### Read shared scores (200; unknown room = 404)
+GET {{baseUrl}}/api/halloween/sessions/{{roomId}}
+
+### Adjust scores (200). Retry the SAME operationId to avoid duplicate points.
+POST {{baseUrl}}/api/halloween/sessions/{{roomId}}/scores
+Content-Type: application/json
+
+{
+  "operationId": "c1be29f7-7de1-400e-8ec2-6db6086f7a40",
+  "changes": [
+    { "player": "Andre", "game": "missoes", "delta": 1 },
+    { "player": "Duda", "game": "missoes", "delta": -1 }
+  ]
+}
+
+### Invalid player (400)
+POST {{baseUrl}}/api/halloween/sessions/{{roomId}}/scores
+Content-Type: application/json
+
+{
+  "operationId": "d32dc370-c880-4948-af16-15a3de70c336",
+  "changes": [{ "player": "Unknown", "game": "timer", "delta": 1 }]
+}

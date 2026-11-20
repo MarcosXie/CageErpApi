@@ -13,6 +13,7 @@ services:
       - "127.0.0.1:8093:8093"
     volumes:
       - /opt/cage-erp-api/logs:/app/logs
+      - /opt/cage-erp-api/halloween:/app/App_Data/halloween
     networks:
       - flygates_net
     logging:

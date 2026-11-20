@@ -6,6 +6,7 @@ using FlyGates.Infraestructure.Extensions;
 using FlyGates.Middlewares;
 using FlyGates.Repository.Extensions;
 using Microsoft.OpenApi.Models;
+using FlyGates.Application.Services.Halloween;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,9 @@ services.AddSwaggerGen(c =>
 
 services.AddHttpContextAccessor();
 services.AddApplication();
+services.AddSingleton<IHalloweenSessionService>(provider => new HalloweenSessionService(
+    config["Halloween:DataDirectory"] ?? Path.Combine(AppContext.BaseDirectory, "App_Data", "halloween"),
+    provider.GetRequiredService<ILogger<HalloweenSessionService>>()));
 services.AddSingleton<ICageClusterStatusNotifier, CageClusterStatusNotifier>();
 services.AddSingleton<ICageOutLiveSessionNotifier, CageOutLiveSessionNotifier>();
 services.AddRepository(config);

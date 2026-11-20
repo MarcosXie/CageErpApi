@@ -2,6 +2,63 @@
 
 Este documento descreve os endpoints do modulo CageOuts implementado no FlyGates.Api.
 
+## Halloween (area web independente)
+
+Nao altera os contratos do self-checkout WPF. Endpoints publicos para uma festa
+informal; o UUID aleatorio da sala e a chave de acesso. Nao ha listagem de salas
+nem autenticacao de jogadores. Quem possui o link pode alterar pontos.
+
+- `POST /api/halloween/sessions`: cria sala, retorna 201 com `Location`.
+- `GET /api/halloween/sessions/{id}`: retorna 200 com o placar ou 404.
+- `POST /api/halloween/sessions/{id}/scores`: atualiza de 1 a 4 ajustes de pontos
+  atomicamente e retorna o snapshot (200).
+
+Corpo do ajuste:
+
+```json
+{
+  "operationId": "c1be29f7-7de1-400e-8ec2-6db6086f7a40",
+  "changes": [
+    { "player": "Andre", "game": "timer", "delta": 4 }
+  ]
+}
+```
+
+Snapshot: `{ "id": "<uuid>", "revision": 1, "scores": { "<jogo>":
+{ "Andre": 0, "Duda": 0, "Leh": 0, "Maicon": 0 } }, "appliedOperations":
+["<uuid>"] }`. `scores` sempre inclui os sete jogos: `missoes`, `mimica`,
+`drink-russo`, `quem-sou-eu`, `timer`, `sobrevivencia`, `fantasia`. Os jogadores
+sao fixos. O geral e a soma dos sete jogos no cliente. `revision` cresce a cada
+operacao nova para impedir que respostas atrasadas revertam o placar visual.
+
+`operationId` deve ser um UUID nao vazio, novo por acao, reutilizado em reenvios
+da MESMA acao: se ja aplicado, retorna o estado atual sem reaplicar, mesmo que o
+corpo seja diferente. `delta` deve ser inteiro de -100 a 100, exceto zero.
+Valores/jogadores/jogos invalidos retornam 400, sala inexistente 404 e limite de
+saldo por jogador/jogo (+/-1.000.000) retorna 409. Erros de armazenamento retornam
+503 e nunca simulam placar vazio. Erros seguem o middleware existente da API.
+Exemplos executaveis em `FlyGates.Api/Halloween.http`.
+
+### Persistencia e publicacao
+
+Um JSON por sala em `App_Data/halloween` relativo ao diretorio do executavel.
+Override por `Halloween__DataDirectory` (caminho absoluto recomendado).
+Gravacoes usam arquivo temporario e substituicao atomica; um singleton serializa
+leituras/escritas para nao perder incrementos simultaneos. Reenvios permanecem
+idempotentes apos reiniciar o processo. Nao usa MySQL e nao exige migrations.
+Este armazenamento suporta **uma unica instancia/processo da API**; nao escalar
+replicas compartilhando arquivos sem substituir o mecanismo de coordenacao.
+
+O Compose em `deploy/docker-compose.yml` monta
+`/opt/cage-erp-api/halloween:/app/App_Data/halloween`. Na VPS, criar/autorizar esse
+diretorio persistente e incluir os JSONs no backup; aplicar o Compose atualizado,
+nao apenas trocar a imagem. Se usar outro caminho via variavel, ajustar tambem
+o volume. Sem volume, recriar o container apaga as salas.
+
+Publicar API e frontend juntos. A UI usa a base ja configurada em
+`VITE_API_BASE_URL`, sem credenciais administrativas. Missoes, cartas e progresso
+do Timer ficam privados no navegador; somente os pontos sao enviados a API.
+
 ## Imagens de referencia compartilhadas de produtos
 
 Rota base:
