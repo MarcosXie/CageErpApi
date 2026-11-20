@@ -8,4 +8,6 @@ public interface IHalloweenSessionService
     Task<HalloweenSessionResponse> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<HalloweenSessionResponse> UpdateScoresAsync(
         Guid id, UpdateHalloweenScoresRequest request, CancellationToken cancellationToken);
+    Task<HalloweenSessionResponse> ExecuteAsync(
+        Guid id, HalloweenActionRequest request, CancellationToken cancellationToken);
 }

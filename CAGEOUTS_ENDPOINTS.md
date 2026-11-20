@@ -11,7 +11,13 @@ nem autenticacao de jogadores. Quem possui o link pode alterar pontos.
 - `POST /api/halloween/sessions`: cria sala, retorna 201 com `Location`.
 - `GET /api/halloween/sessions/{id}`: retorna 200 com o placar ou 404.
 - `POST /api/halloween/sessions/{id}/scores`: atualiza de 1 a 4 ajustes de pontos
-  atomicamente e retorna o snapshot (200).
+  atomicamente e retorna o snapshot (200). Na mimica, espelha cada ajuste no
+  parceiro (Andre/Maicon e Leh/Duda). `Leh` e exibida como Leticia.
+- `POST /api/halloween/sessions/{id}/actions`: executa um comando de jogo
+  idempotente e retorna o snapshot (200).
+- `GET /api/halloween/clock`: retorna `{ "serverTime": "<ISO 8601 UTC>" }`.
+- SignalR `/hubs/halloween`: chamar `SubscribeRoom(id)` e ouvir `RoomUpdated`.
+  Mutacoes publicam o snapshot na sala; a UI tambem consulta a cada 3s.
 
 Corpo do ajuste:
 
@@ -24,12 +30,21 @@ Corpo do ajuste:
 }
 ```
 
-Snapshot: `{ "id": "<uuid>", "revision": 1, "scores": { "<jogo>":
+Snapshot inclui `{ "id": "<uuid>", "revision": 1, "scores": { "<jogo>":
 { "Andre": 0, "Duda": 0, "Leh": 0, "Maicon": 0 } }, "appliedOperations":
 ["<uuid>"] }`. `scores` sempre inclui os sete jogos: `missoes`, `mimica`,
 `drink-russo`, `quem-sou-eu`, `timer`, `sobrevivencia`, `fantasia`. Os jogadores
-sao fixos. O geral e a soma dos sete jogos no cliente. `revision` cresce a cada
-operacao nova para impedir que respostas atrasadas revertam o placar visual.
+sao fixos. Tambem inclui `rulesVersion`, `completedGames`, `instagramPostUrl`,
+`timer`, `drinkRounds` e `survival` (tipos em
+`FlyGates.Application/Entities/Halloween/HalloweenSessionResponse.cs`).
+`revision` cresce a cada operacao nova para impedir respostas atrasadas.
+
+O cliente calcula o geral por colocacao somente em `completedGames`:
+missoes 80/55/30/15; Timer, Drink Russo e quem sou eu 60/40/25/10;
+fantasia 100/70/40/20; sobrevivencia 60/40/25/10, com **menos sustos** vencendo.
+Empates recebem a media das posicoes ocupadas. Na mimica, cada membro recebe
+70 pela dupla vencedora ou 35 pela outra (52,5 se empatadas). Mais rodadas nao
+aumentam o peso do jogo. Reabrir retira a contribuicao e permite correcoes.
 
 `operationId` deve ser um UUID nao vazio, novo por acao, reutilizado em reenvios
 da MESMA acao: se ja aplicado, retorna o estado atual sem reaplicar, mesmo que o
@@ -38,6 +53,48 @@ Valores/jogadores/jogos invalidos retornam 400, sala inexistente 404 e limite de
 saldo por jogador/jogo (+/-1.000.000) retorna 409. Erros de armazenamento retornam
 503 e nunca simulam placar vazio. Erros seguem o middleware existente da API.
 Exemplos executaveis em `FlyGates.Api/Halloween.http`.
+
+### Comandos de jogo
+
+Corpo: `{ "operationId": "<uuid>", "action": "<comando>", ... }`.
+Campos opcionais conforme comando: `game`, `player`, `target`, `roundId`,
+`completed`, `elapsedMs`, `url`, `votes`. A mesma regra de idempotencia vale
+para comandos. Rodada desatualizada/acao incompativel retorna 409; dados
+invalidos retornam 400. Jogos concluidos bloqueiam ajustes e comandos ate reabrir.
+Sustos e votos nao podem ser negativos.
+
+| Comando | Campos / efeito |
+| --- | --- |
+| `game-status` | `game`, `completed`: conclui ou reabre; exige etapas estruturadas completas |
+| `instagram` | `url`: HTTPS instagram.com ou www.instagram.com, sem credenciais/porta alternativa |
+| `fantasy-votes` | `player`, `votes`: define total inteiro de votos validos, conferencia manual |
+| `timer-ready` | `player`, `roundId`: confirma prontidao por 60s |
+| `timer-start` | `roundId`: exige quatro prontos; agenda UTC atual +5s |
+| `timer-stop` | `player`, `roundId`, `elapsedMs`: registra parada individual; ultima parada pontua |
+| `timer-next` | `roundId`: avanca apos resultado, com nova prontidao |
+| `timer-close` | `roundId`: apos 90s fecha ausentes com zero |
+| `drink-start` | abre rodada se nao houver outra pendente |
+| `drink-vote` | `player`, `target`, `roundId`: voto unico em outra pessoa |
+| `drink-reveal` | `player` (dono real do copo), `roundId`: exige quatro votos; revela e pontua |
+| `survival-start` | `player`: inicia tentativa de dez minutos |
+| `survival-finish` | `player`: conclui apos dez minutos; quatro jogadores liberam ranking |
+| `survival-cancel` | `player`: cancela tentativa, preservando contagem de sustos |
+
+Timer: uma partida de cinco rodadas por sala, alvos 3-6/7-11/12-17/18-24/25-30s.
+Erro absoluto define pontos brutos 4/3/2/1 por rodada; empate no milissegundo
+compartilha posicao e pula a seguinte. O fechamento soma automaticamente uma
+unica vez. Tempos sao ocultados ate fechar a rodada. `elapsedMs` vai de 0 a
+90.000 e nao pode exceder tempo decorrido no servidor +1.000ms. UI calibra
+relogio por menor RTT; largada depende do horario UTC agendado, nao da chegada
+do evento. Nao e garantia de tempo real/anti-cheat; manter pagina ativa e rede
+estavel. Nao ha reinicio de partida nessa sala.
+
+Drink Russo: votos ficam ausentes do snapshot ate a revelacao; antes disso
+somente identidades de quem votou sao publicas. Acerto +2; dono do copo +1
+por cada um dos outros tres que errou, com bonus +2 se nenhum acertar.
+Revelar fecha a rodada e soma pontos uma vez. Pode haver varias rodadas.
+Nenhum jogador e autenticado; os segredos nao constituem protecao contra
+alguem se passando por outro jogador.
 
 ### Persistencia e publicacao
 
@@ -55,9 +112,15 @@ diretorio persistente e incluir os JSONs no backup; aplicar o Compose atualizado
 nao apenas trocar a imagem. Se usar outro caminho via variavel, ajustar tambem
 o volume. Sem volume, recriar o container apaga as salas.
 
-Publicar API e frontend juntos. A UI usa a base ja configurada em
-`VITE_API_BASE_URL`, sem credenciais administrativas. Missoes, cartas e progresso
-do Timer ficam privados no navegador; somente os pontos sao enviados a API.
+Salas antigas sao atualizadas automaticamente com persistencia da nova partida;
+placares/recibos existentes sao preservados, somando os antigos pontos de mimica
+por dupla. Nenhum jogo antigo e concluido automaticamente. Timer local antigo
+nao e importado.
+
+Publicar API e frontend juntos. A UI usa `VITE_API_BASE_URL`, sem credenciais
+administrativas. Missoes e cartas ficam privadas no navegador; pontos e estados
+multiplayer ficam na API. Expor tambem `/hubs/halloween` com suporte a WebSocket:
+o proxy Nginx existente ja encaminha `/` e os headers Upgrade/Connection.
 
 ## Imagens de referencia compartilhadas de produtos
 

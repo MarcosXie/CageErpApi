@@ -32,6 +32,8 @@ public sealed class HalloweenHttpTests : IAsyncLifetime
         builder.Services.AddControllers().AddApplicationPart(typeof(HalloweenController).Assembly);
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        builder.Services.AddSignalR();
+        builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton<IHalloweenSessionService>(provider => new HalloweenSessionService(
             _directory, provider.GetRequiredService<ILogger<HalloweenSessionService>>()));
         _app = builder.Build();
@@ -85,6 +87,17 @@ public sealed class HalloweenHttpTests : IAsyncLifetime
         Assert.True(paths.GetProperty(Route).TryGetProperty("post", out _));
         Assert.True(paths.GetProperty(Route + "/{id}").TryGetProperty("get", out _));
         Assert.True(paths.GetProperty(Route + "/{id}/scores").TryGetProperty("post", out _));
+        Assert.True(paths.GetProperty(Route + "/{id}/actions").TryGetProperty("post", out _));
+        using var clock = await _client.GetAsync("/api/halloween/clock");
+        clock.EnsureSuccessStatusCode();
+        var sample = await clock.Content.ReadFromJsonAsync<HalloweenClockResponse>();
+        Assert.NotNull(sample);
+
+        using var action = await _client.PostAsJsonAsync($"{Route}/{room.Id}/actions",
+            new HalloweenActionRequest { OperationId = Guid.NewGuid(), Action = "drink-start" });
+        action.EnsureSuccessStatusCode();
+        var drinkRoom = (await action.Content.ReadFromJsonAsync<HalloweenSessionResponse>())!;
+        Assert.Single(drinkRoom.DrinkRounds);
     }
 
     [Fact]

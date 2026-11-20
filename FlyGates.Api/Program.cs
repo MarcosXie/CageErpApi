@@ -47,6 +47,7 @@ services.AddApplication();
 services.AddSingleton<IHalloweenSessionService>(provider => new HalloweenSessionService(
     config["Halloween:DataDirectory"] ?? Path.Combine(AppContext.BaseDirectory, "App_Data", "halloween"),
     provider.GetRequiredService<ILogger<HalloweenSessionService>>()));
+services.AddSingleton(TimeProvider.System);
 services.AddSingleton<ICageClusterStatusNotifier, CageClusterStatusNotifier>();
 services.AddSingleton<ICageOutLiveSessionNotifier, CageOutLiveSessionNotifier>();
 services.AddRepository(config);
@@ -68,6 +69,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<CageClusterMonitorHub>("/hubs/cagecluster");
 app.MapHub<CageOutLiveSessionHub>("/hubs/cageouts/live-session");
+app.MapHub<HalloweenHub>("/hubs/halloween");
 app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();

@@ -1,12 +1,71 @@
 @baseUrl = http://localhost:5000
 # Replace with the ID returned by Create room.
 @roomId = 00000000-0000-0000-0000-000000000000
+# Replace with timer.rounds[timer.roundIndex].id.
+@roundId = 00000000-0000-0000-0000-000000000000
 
 ### Create room (201, Location header)
 POST {{baseUrl}}/api/halloween/sessions
 
 ### Read shared scores (200; unknown room = 404)
 GET {{baseUrl}}/api/halloween/sessions/{{roomId}}
+
+### Calibrate shared start against server UTC (200)
+GET {{baseUrl}}/api/halloween/clock
+
+### Ready for current Timer round. Repeat with fresh operation IDs for each player.
+POST {{baseUrl}}/api/halloween/sessions/{{roomId}}/actions
+Content-Type: application/json
+
+{
+  "operationId": "11ef9ad9-3a4b-46c1-8c43-4efb6f93ee01",
+  "action": "timer-ready",
+  "player": "Andre",
+  "roundId": "{{roundId}}"
+}
+
+### Schedule shared start (four fresh ready confirmations required)
+POST {{baseUrl}}/api/halloween/sessions/{{roomId}}/actions
+Content-Type: application/json
+
+{
+  "operationId": "11ef9ad9-3a4b-46c1-8c43-4efb6f93ee02",
+  "action": "timer-start",
+  "roundId": "{{roundId}}"
+}
+
+### Stop own clock; elapsedMs is measured from the scheduled UTC start
+POST {{baseUrl}}/api/halloween/sessions/{{roomId}}/actions
+Content-Type: application/json
+
+{
+  "operationId": "11ef9ad9-3a4b-46c1-8c43-4efb6f93ee03",
+  "action": "timer-stop",
+  "player": "Andre",
+  "roundId": "{{roundId}}",
+  "elapsedMs": 5001
+}
+
+### Finalize a manually scored game for weighted championship standings
+POST {{baseUrl}}/api/halloween/sessions/{{roomId}}/actions
+Content-Type: application/json
+
+{
+  "operationId": "11ef9ad9-3a4b-46c1-8c43-4efb6f93ee04",
+  "action": "game-status",
+  "game": "missoes",
+  "completed": true
+}
+
+### Store Instagram post (manual vote verification, no Instagram integration)
+POST {{baseUrl}}/api/halloween/sessions/{{roomId}}/actions
+Content-Type: application/json
+
+{
+  "operationId": "11ef9ad9-3a4b-46c1-8c43-4efb6f93ee05",
+  "action": "instagram",
+  "url": "https://www.instagram.com/p/POST_DA_FESTA/"
+}
 
 ### Adjust scores (200). Retry the SAME operationId to avoid duplicate points.
 POST {{baseUrl}}/api/halloween/sessions/{{roomId}}/scores
