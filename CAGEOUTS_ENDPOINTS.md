@@ -32,19 +32,24 @@ Corpo do ajuste:
 
 Snapshot inclui `{ "id": "<uuid>", "revision": 1, "scores": { "<jogo>":
 { "Andre": 0, "Duda": 0, "Leh": 0, "Maicon": 0 } }, "appliedOperations":
-["<uuid>"] }`. `scores` sempre inclui os sete jogos: `missoes`, `mimica`,
-`drink-russo`, `quem-sou-eu`, `timer`, `sobrevivencia`, `fantasia`. Os jogadores
+["<uuid>"] }`. `scores` sempre inclui os nove jogos: `missoes`, `mimica`,
+`drink-russo`, `quem-sou-eu`, `timer`, `sobrevivencia`, `fantasia`, `lata`,
+`filme`. Os jogadores
 sao fixos. Tambem inclui `rulesVersion`, `completedGames`, `instagramPostUrl`,
 `timer`, `drinkRounds` e `survival` (tipos em
 `FlyGates.Application/Entities/Halloween/HalloweenSessionResponse.cs`).
 `revision` cresce a cada operacao nova para impedir respostas atrasadas.
 
 O cliente calcula o geral por colocacao somente em `completedGames`:
-missoes 80/55/30/15; Timer, Drink Russo e quem sou eu 60/40/25/10;
+missoes 80/55/30/15; Timer, Drink Russo, quem sou eu, lata e filme 60/40/25/10;
 fantasia 100/70/40/20; sobrevivencia 60/40/25/10, com **menos sustos** vencendo.
 Empates recebem a media das posicoes ocupadas. Na mimica, cada membro recebe
 70 pela dupla vencedora ou 35 pela outra (52,5 se empatadas). Mais rodadas nao
 aumentam o peso do jogo. Reabrir retira a contribuicao e permite correcoes.
+Na lata, registra-se +1 ao vencedor de cada rodada. No filme, registra-se +3,
++2 ou +1 para o acerto na primeira, segunda ou terceira tentativa; sem acerto,
+zero. Esses registros presenciais usam `/scores`; as tentativas e o historico
+das rodadas nao sao controlados pela API.
 
 `operationId` deve ser um UUID nao vazio, novo por acao, reutilizado em reenvios
 da MESMA acao: se ja aplicado, retorna o estado atual sem reaplicar, mesmo que o
@@ -112,7 +117,10 @@ diretorio persistente e incluir os JSONs no backup; aplicar o Compose atualizado
 nao apenas trocar a imagem. Se usar outro caminho via variavel, ajustar tambem
 o volume. Sem volume, recriar o container apaga as salas.
 
-Salas antigas sao atualizadas automaticamente com persistencia da nova partida;
+Salas antigas sao atualizadas automaticamente, adicionando `lata` e `filme`
+com placares zerados e incrementando a revisao; os resultados existentes e
+operacoes aplicadas sao preservados. Versoes ainda mais antigas tambem recebem
+a nova partida de Timer com persistencia;
 placares/recibos existentes sao preservados, somando os antigos pontos de mimica
 por dupla. Nenhum jogo antigo e concluido automaticamente. Timer local antigo
 nao e importado.

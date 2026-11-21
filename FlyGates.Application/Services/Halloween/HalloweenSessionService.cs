@@ -10,8 +10,10 @@ public sealed partial class HalloweenSessionService(
     : IHalloweenSessionService, IDisposable
 {
     private static readonly string[] Players = ["Andre", "Duda", "Leh", "Maicon"];
-    private static readonly string[] Games =
+    private static readonly string[] OriginalGames =
         ["missoes", "mimica", "drink-russo", "quem-sou-eu", "timer", "sobrevivencia", "fantasia"];
+    private static readonly string[] NewGames = ["lata", "filme"];
+    private static readonly string[] Games = [.. OriginalGames, .. NewGames];
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly string _directory = Path.GetFullPath(directory);
@@ -22,7 +24,7 @@ public sealed partial class HalloweenSessionService(
         {
             var session = new HalloweenSessionResponse(Guid.NewGuid(), 0,
                 Games.ToDictionary(game => game, _ => Players.ToDictionary(player => player, _ => 0)),
-                []) { RulesVersion = 2, Timer = NewTimerMatch() };
+                []) { RulesVersion = 3, Timer = NewTimerMatch() };
             await SaveAsync(session, cancellationToken);
             return session;
         }, cancellationToken);
@@ -78,12 +80,12 @@ public sealed partial class HalloweenSessionService(
                 stream, JsonOptions, cancellationToken);
         }
         if (session is null || session.Id != id || session.Scores is null || session.AppliedOperations is null
-            || Games.Any(game => !session.Scores.TryGetValue(game, out var scores)
+            || (session.RulesVersion < 3 ? OriginalGames : Games).Any(game => !session.Scores.TryGetValue(game, out var scores)
                 || scores is null || Players.Any(player => !scores.ContainsKey(player))))
         {
             throw new JsonException("Invalid Halloween room file.");
         }
-        var upgrade = session.RulesVersion < 2 || session.Timer is null;
+        var upgrade = session.RulesVersion < 3 || session.Timer is null;
         if (session.RulesVersion < 2)
         {
             foreach (var (first, second) in new[] { ("Andre", "Maicon"), ("Leh", "Duda") })
@@ -94,6 +96,15 @@ public sealed partial class HalloweenSessionService(
             }
             session = session with { RulesVersion = 2 };
         }
+        if (session.RulesVersion < 3)
+        {
+            foreach (var game in NewGames)
+                session.Scores.TryAdd(game, Players.ToDictionary(player => player, _ => 0));
+            session = session with { RulesVersion = 3, Revision = session.Revision + 1 };
+        }
+        if (NewGames.Any(game => !session.Scores.TryGetValue(game, out var scores)
+            || scores is null || Players.Any(player => !scores.ContainsKey(player))))
+            throw new JsonException("Invalid Halloween room scores.");
         session = session with { Timer = session.Timer ?? NewTimerMatch() };
         if (session.Timer.Rounds is not { Count: 5 } || session.Timer.RoundIndex is < 0 or > 4
             || session.Timer.Rounds.Any(round => round.ReadyPlayers is null || round.ElapsedMilliseconds is null

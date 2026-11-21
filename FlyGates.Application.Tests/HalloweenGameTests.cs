@@ -128,7 +128,7 @@ public sealed class HalloweenGameTests : IDisposable
         var legacy = new { id, revision = 7, scores = room.Scores, appliedOperations = Array.Empty<Guid>() };
         await File.WriteAllTextAsync(Path.Combine(_directory, $"{id:N}.json"), JsonSerializer.Serialize(legacy));
         var upgraded = await _service.GetAsync(id, default);
-        Assert.Equal(2, upgraded.RulesVersion);
+        Assert.Equal(3, upgraded.RulesVersion);
         Assert.Equal(3, upgraded.Scores["mimica"]["Andre"]);
         Assert.Equal(3, upgraded.Scores["mimica"]["Maicon"]);
         Assert.Equal(upgraded.Timer!.Id, (await _service.GetAsync(id, default)).Timer!.Id);
@@ -144,6 +144,49 @@ public sealed class HalloweenGameTests : IDisposable
         };
         await Assert.ThrowsAsync<BaseException>(() => _service.UpdateScoresAsync(id, invalidBatch, default));
         Assert.Equal(4, (await _service.GetAsync(id, default)).Scores["mimica"]["Andre"]);
+    }
+
+    [Fact]
+    public async Task ExistingRoomsGainNewGamesWithoutLosingScoresAndSupportScoringAndRetry()
+    {
+        var room = await _service.CreateAsync(default);
+        var id = room.Id;
+        var timerId = room.Timer!.Id;
+        var operation = Score("Andre", "missoes", 4);
+        room = await _service.UpdateScoresAsync(id, operation, default);
+        var old = room with { RulesVersion = 2 };
+        old.Scores.Remove("lata");
+        old.Scores.Remove("filme");
+        await File.WriteAllTextAsync(Path.Combine(_directory, $"{id:N}.json"),
+            JsonSerializer.Serialize(old, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var upgraded = await _service.GetAsync(id, default);
+        Assert.Equal(3, upgraded.RulesVersion);
+        Assert.Equal(room.Revision + 1, upgraded.Revision);
+        Assert.Equal(timerId, upgraded.Timer!.Id);
+        Assert.Equal(4, upgraded.Scores["missoes"]["Andre"]);
+        Assert.Contains(operation.OperationId, upgraded.AppliedOperations);
+        Assert.All(Players, player =>
+        {
+            Assert.Equal(0, upgraded.Scores["lata"][player]);
+            Assert.Equal(0, upgraded.Scores["filme"][player]);
+        });
+
+        var victory = Score("Duda", "lata", 1);
+        var first = await _service.UpdateScoresAsync(id, victory, default);
+        var replay = await _service.UpdateScoresAsync(id, victory, default);
+        Assert.Equal(first.Revision, replay.Revision);
+        Assert.Equal(1, replay.Scores["lata"]["Duda"]);
+        foreach (var (player, points) in new[] { ("Andre", 3), ("Leh", 2), ("Maicon", 1) })
+            await _service.UpdateScoresAsync(id, Score(player, "filme", points), default);
+
+        using var restarted = new HalloweenSessionService(_directory, NullLogger<HalloweenSessionService>.Instance, _clock);
+        var persisted = await restarted.GetAsync(id, default);
+        Assert.Equal(3, persisted.Scores["filme"]["Andre"]);
+        Assert.Equal(2, persisted.Scores["filme"]["Leh"]);
+        Assert.Equal(1, persisted.Scores["filme"]["Maicon"]);
+        await Run(id, Action("game-status") with { Game = "filme", Completed = true });
+        await Assert.ThrowsAsync<BaseException>(() => _service.UpdateScoresAsync(id, Score("Andre", "filme", 1), default));
     }
 
     [Fact]

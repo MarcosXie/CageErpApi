@@ -51,7 +51,9 @@ public sealed class HalloweenHttpTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var room = (await created.Content.ReadFromJsonAsync<HalloweenSessionResponse>())!;
         Assert.Equal($"{Route}/{room.Id}", created.Headers.Location!.AbsolutePath);
-        Assert.Equal(7, room.Scores.Count);
+        Assert.Equal(9, room.Scores.Count);
+        Assert.Contains("lata", room.Scores.Keys);
+        Assert.Contains("filme", room.Scores.Keys);
         Assert.All(room.Scores.Values, scores => Assert.Equal(
             new[] { "Andre", "Duda", "Leh", "Maicon" }, scores.Keys));
 
